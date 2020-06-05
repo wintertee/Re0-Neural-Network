@@ -2,11 +2,12 @@ import numpy as np
 from .Loss import Loss
 
 
-class loss(Loss):
+class Crossentropy(Loss):
     @staticmethod
     def forward(pred, truth):
-        return - np.dot(truth, np.log(pred))
+        return - np.dot(truth.T, np.log(pred))
 
     @staticmethod
-    def derivative(pred, truth):
+    def backward(pred, truth):
         return pred - truth
+        

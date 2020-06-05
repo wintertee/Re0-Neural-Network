@@ -1,2 +1,2 @@
-# RE0-Neural-Network
-A neural network designed from scratch
+# BCD-Neural-Network
+A neural network using block coordinate descent designed from scratch

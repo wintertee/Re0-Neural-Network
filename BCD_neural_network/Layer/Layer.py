@@ -10,3 +10,6 @@ class Layer:
 
     def backward(self, dL_da):
         raise NotImplementedError
+
+    def update(self, lr):
+        raise NotImplementedError

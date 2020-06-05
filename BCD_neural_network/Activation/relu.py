@@ -8,7 +8,7 @@ class relu(Activation):
         return np.maximum(0, z)
 
     @staticmethod
-    def backword(a, dL_da):
-        derivative = a > 0
-        derivative = derivative.astype(np.int32)
-        return np.dot(dL_da, derivative.reshape(a.shape))
+    def backward(a):
+        da_dz = a > 0
+        da_dz = da_dz.astype(np.int32)
+        return da_dz

@@ -4,5 +4,6 @@ class Loss:
         raise NotImplementedError
 
     @staticmethod
-    def derivative(a):
+    def backward(a):
         raise NotImplementedError
+    

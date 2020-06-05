@@ -12,8 +12,8 @@ class softmax(Activation):
         return exp_z / np.sum(exp_z)
 
     @staticmethod
-    def backward(a, dL_da):
+    def backward(a):
         """
-        implemented in crossentropy
+        implemented in crossentropy, here returns In
         """
-        return dL_da
+        return np.ones(a.shape)

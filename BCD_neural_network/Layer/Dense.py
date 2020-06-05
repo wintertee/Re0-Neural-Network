@@ -14,22 +14,22 @@ class Dense(Layer):
         if initializer:
             self.w = initializer((out_channels, in_channels))
         else:
-            self.w = np.ones(out_channels, in_channels)
-        self.b = np.zeros(out_channels)
+            self.w = np.ones((out_channels, in_channels))
+        self.b = np.zeros((out_channels, 1))
 
         self.clear()
 
     def clear(self):
-        self.dL_dw = np.zeros(self.out_channels, self.in_channels)
-        self.dL_db = np.zeros(self.out_channels)
-        self.dL_dx = np.zeros(self.in_channels)
-        self.x = np.zeros(self.out_channels)
-        self.z = np.zeros(self.out_channels)
-        self.a = np.zeros(self.out_channels)
+        self.dL_dw = np.zeros((self.out_channels, self.in_channels))
+        self.dL_db = np.zeros((self.out_channels, 1))
+        self.dL_dx = np.zeros((self.in_channels, 1))
+        self.x = np.zeros((self.in_channels, 1))
+        self.z = np.zeros((self.out_channels, 1))
+        self.a = np.zeros((self.out_channels, 1))
 
     def forward(self, x):
         self.x = x
-        self.z = np.dot(self.w, x) + self.b
+        self.z = np.dot(self.w, self.x) + self.b
         if self.activation is None:
             self.a = self.z
         else:
@@ -40,13 +40,15 @@ class Dense(Layer):
         if self.activation is None:
             da_dz = np.ones(self.out_channels)
         else:
-            da_dz = self.activation.derivative(self.a, dL_da)
+            da_dz = self.activation.backward(self.a)
 
-        da_dw = np.dot(da_dz, self.x)
-        self.dL_dw = np.dot(dL_da, da_dw)
+        dL_dz = dL_da * da_dz  # NOTE * not np.dot here!
+        self.dL_dw = np.dot(dL_dz, self.x.T)
+        self.dL_dx = np.dot(self.w.T, dL_dz)
+        self.dL_db = dL_dz
 
-        da_dx = np.dot(da_dz, self.w)
-        self.dL_dx = np.dot(dL_da, da_dx)
+        return self.dL_dx  # x is the `a` in the last layer
 
-        da_db = da_dz
-        self.dL_db = np.dot(dL_da, da_db)
+    def update(self, lr):
+        self.w -= lr * self.dL_dw
+        self.b -= lr * self.dL_db
