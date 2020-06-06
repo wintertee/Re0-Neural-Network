@@ -16,7 +16,6 @@ class Model:
             self.P.append(layer.P)
             self.G.append(layer.G)
             print("layer " + str(i) + " parameters: " + str(layer.P['w'].size + layer.P['b'].size))
-        
 
     def config(self, optimizer=None, loss=None, metrics=None, lr=None, **kwargs):
         if loss is not None:
