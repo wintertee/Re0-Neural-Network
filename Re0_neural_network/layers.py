@@ -2,48 +2,32 @@ import numpy as np
 
 
 class Layer:
-    def __init__(self, in_channels, out_channels, activation=None, initializer=None):
+    def __init__(self):
         raise NotImplementedError
 
-    def clear(self):
+    def forward(self):
         raise NotImplementedError
 
-    def forward(self, x):
-        raise NotImplementedError
-
-    def backward(self, dL_da):
-        raise NotImplementedError
-
-    def update(self, lr):
+    def backward(self):
         raise NotImplementedError
 
 
 class Dense(Layer):
     def __init__(self, in_channels, out_channels, activation=None, initializer=None):
 
-        # initialize propoties
+        # initialize properties
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.activation = activation
 
         # initialize parameters
-        self.P = {}
-        self.G = {}
+        self.P = {}  # parameters
+        self.G = {}  # gradients
         if initializer:
             self.P['w'] = initializer((out_channels, in_channels))
         else:
             self.P['w'] = np.ones((out_channels, in_channels))
         self.P['b'] = np.zeros((out_channels, 1))
-
-        # self.clear()
-
-    # def clear(self):
-    #     self.dL_dw = np.zeros((self.out_channels, self.in_channels))
-    #     self.dL_db = np.zeros((self.out_channels, 1))
-    #     self.dL_dx = np.zeros((self.in_channels, 1))
-    #     self.x = np.zeros((self.in_channels, 1))
-    #     self.z = np.zeros((self.out_channels, 1))
-    #     self.a = np.zeros((self.out_channels, 1))
 
     def forward(self, x):
         self.x = x
@@ -62,7 +46,7 @@ class Dense(Layer):
 
         dL_dz = dL_da * da_dz  # NOTE * not np.dot here!
         self.G['w'] = np.dot(dL_dz, self.x.T)  # dL_dw
-        self.dL_dx = np.dot(self.P['w'].T, dL_dz)
+        dL_dx = np.dot(self.P['w'].T, dL_dz)
         self.G['b'] = dL_dz  # dL_db
 
-        return self.dL_dx  # NOTE x is the `a` in the last layer
+        return dL_dx  # NOTE x is the `a` in the last layer
