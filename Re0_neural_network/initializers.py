@@ -7,8 +7,6 @@ def He(shape):
     Args:
         shape: tuple(out_channels, inchannels)
     Return:
-        
-
+        matirx(out_channels, inchannels)
     """
     return np.random.randn(*shape) * np.sqrt(2. / shape[-1])
-
