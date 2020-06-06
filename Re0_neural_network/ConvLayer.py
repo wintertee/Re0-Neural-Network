@@ -1,6 +1,7 @@
 import numpy as np
 from functools import reduce
 import math
+from Re0_neural_network.activations import relu
 
 class ConvLayer(object):
     def __init__(self,input_image,output_channels,kernel_size,padding,activation=None):
@@ -38,7 +39,11 @@ class ConvLayer(object):
             conv_out[i] = np.reshape(np.dot(self.col_image_i, col_weights) + self.P['b'], self.eta[0].shape)
             self.col_image.append(self.col_image_i)
         self.col_image = np.array(self.col_image)
-        return conv_out
+        if self.activation is None:
+            return conv_out
+        else:
+            return self.activation.forward(conv_out)
+
 
 
 
@@ -74,7 +79,7 @@ if __name__ == "__main__":
     img *= 2
     print("img:",img)
 
-    conv = ConvLayer(img.shape, 2, 3, 1)
+    conv = ConvLayer(img.shape, 2, 3, 1,relu())
 
     next = conv.forward(img)
     print("next:",next)
