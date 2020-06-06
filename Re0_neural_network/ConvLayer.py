@@ -44,10 +44,6 @@ class ConvLayer(object):
         else:
             return self.activation.forward(conv_out)
 
-
-
-
-
     def backward(self,dL_da,alpha=0.00001, weight_decay=0.0004):
         # 避免过拟合，可考虑删除
         self.P['w'] *= (1 - weight_decay)
