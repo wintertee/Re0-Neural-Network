@@ -12,22 +12,30 @@ class Sequential:
         """
         add all parameters to model
         """
+        print("===========================================")
+        print("              Model summary                ")
+        print("===========================================")
         self.P = []
         self.G = []
+        parameters = []
         for i, layer in enumerate(self.layers):
             self.P.append(layer.P)
             self.G.append(layer.G)
-            print("layer " + str(i) + " parameters: " + str(layer.P['w'].size + layer.P['b'].size))
+            parameters.append(layer.P['w'].size + layer.P['b'].size)
+            print("layer {} {:<10} parameters: {:<10}".format(i + 1, layer.__class__.__name__, parameters[i]))
+        print("===========================================")
+        print("total parameters: {}".format(np.sum(parameters)))
+        print("===========================================")
 
-    def config(self, optimizer=None, loss=None, metrics=None, lr=None, batch_size=None, **kwargs):
+    def config(self, optimizer=None, loss=None, metric=None, lr=None, batch_size=None, **kwargs):
         if batch_size is not None:
             self.batch_size = batch_size
 
         if loss is not None:
             self.loss = loss
 
-        if metrics is not None:
-            self.metrics = metrics
+        if metric is not None:
+            self.metric = metric
 
         if lr is not None:
             self.lr = lr
@@ -44,7 +52,8 @@ class Sequential:
 
         self.pred = x
         loss = self.loss.forward(self.pred, y)
-        return loss
+        metric = self.metric(self.pred, y)
+        return (loss, metric)
 
     def backward(self, y, min_index=0):
         dL_da = self.loss.backward(self.pred, y)
@@ -54,8 +63,8 @@ class Sequential:
             dL_da = layer.backward(dL_da)
 
     def train(self, x, y):
-        loss = self.optimizer.step(x, y)
-        return loss
+        loss, metric = self.optimizer.step(x, y)
+        return (loss, metric)
 
     def val(self, x, y):
         loss = self.forward(x, y)
@@ -67,6 +76,7 @@ class Sequential:
             train_x_data : shape(N,x,1)
         """
         losses = []
+        metrics = []
 
         if shuffle:
             state = np.random.get_state()
@@ -78,6 +88,7 @@ class Sequential:
             x = train_x_data[i * self.batch_size:(i + 1) * self.batch_size]
             y = train_y_data[i * self.batch_size:(i + 1) * self.batch_size]
 
-            loss = self.train(x, y).mean()
+            loss, metric = self.train(x, y)
             losses.append(loss)
-        return losses
+            metrics.append(metric)
+        return (losses, metrics)

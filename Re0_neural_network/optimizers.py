@@ -19,9 +19,9 @@ class Optimizer:
     def step(self, x, y, min_index=0):
         """
         forward and backward.
-        need to update P and G, and return the loss in child classes
+        need to update P and G, and return (loss, metric) in child classes
         """
-        self.loss = self.model.forward(x, y)
+        self.loss, self.metric = self.model.forward(x, y)
         self.model.backward(y, min_index=min_index)
 
 
@@ -31,7 +31,7 @@ class SGD(Optimizer):
         for layer in range(self.layer_numbers):
             self.P[layer]['w'] -= self.lr * self.G[layer]['w']
             self.P[layer]['b'] -= self.lr * self.G[layer]['b']
-        return self.loss
+        return (self.loss, self.metric)
 
 
 class PRBCD(Optimizer):
@@ -44,7 +44,7 @@ class PRBCD(Optimizer):
         key = 'w' if np.random.randint(1) == 0 else 'b'
         self.P[layer][key] -= self.lr * self.G[layer][key]
 
-        return self.loss
+        return (self.loss, self.metric)
 
 
 class RCD(Optimizer):
@@ -122,4 +122,4 @@ class RCD(Optimizer):
                     self.P[self.all_list[index][1]]['b'][self.all_list[index][2]][self.all_list[index][3]] -= self.lr *\
                     self.G[self.all_list[index][1]]['b'][self.all_list[index][2]][self.all_list[index][3]]  # noqa: E122
 
-        return self.loss
+        return (self.loss, self.metric)

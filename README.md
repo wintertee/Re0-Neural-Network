@@ -4,11 +4,11 @@ A neural network designed from scratch.
 
 ## TODO
 
-- [ ] flatten layer
-- [ ] conv2d layer
-- [ ] metrics
+- [x] flatten layer
+- [x] conv2d layer
+- [x] metrics
 - [x] batch size
-- [ ] validation
+- [ ] validation/evaluation
 
 ## structure
 
