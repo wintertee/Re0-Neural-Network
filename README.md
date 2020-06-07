@@ -27,6 +27,6 @@ Our coding structure is like this:
          ^               ^
          |               |
    +-----+-----+  +------+-----+
-   |actications|  |initializers|
+   |activations|  |initializers|
    +-----------+  +------------+
 ```
