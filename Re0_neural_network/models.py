@@ -74,7 +74,7 @@ class Sequential:
             np.random.set_state(state)
             np.random.shuffle(train_y_data)
 
-        for i in range(train_x_data.shape[0] // self.batch_size): # drop last batch if not full
+        for i in range(train_x_data.shape[0] // self.batch_size):  # drop last batch if not full
             x = train_x_data[i * self.batch_size:(i + 1) * self.batch_size]
             y = train_y_data[i * self.batch_size:(i + 1) * self.batch_size]
 
