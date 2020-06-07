@@ -8,6 +8,7 @@ A neural network designed from scratch.
 - [ ] conv2d layer
 - [ ] metrics
 - [x] batch size
+- [ ] validation
 
 ## structure
 
