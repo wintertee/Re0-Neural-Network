@@ -3,10 +3,11 @@ from functools import reduce
 import math
 from Re0_neural_network.activations import relu
 
-class ConvLayer(object):
-    def __init__(self,input_image,output_channels,kernel_size,padding,activation=None):
 
-        # initialize propoties
+class ConvLayer(object):
+    def __init__(self, input_image, output_channels, kernel_size, padding, activation=None):
+
+        # initialize properties
         self.input_image = input_image
         self.input_channels = input_image[-1]
         self.output_channels = output_channels
@@ -15,21 +16,23 @@ class ConvLayer(object):
         self.activation = activation
         self.batchsize = input_image[0]
 
-        self.eta = np.zeros((input_image[0], (input_image[1] - kernel_size + 1), (input_image[1] - kernel_size + 1), self.output_channels))
+        self.eta = np.zeros((input_image[0], (input_image[1] - kernel_size + 1), (input_image[1] - kernel_size + 1),
+                             self.output_channels))
 
         # initialize parameters
         self.P = {}
         self.G = {}
 
         weights_scale = math.sqrt(reduce(lambda x, y: x * y, input_image) / self.output_channels)
-        self.P['w'] = np.random.standard_normal((kernel_size, kernel_size, self.input_channels, self.output_channels)) / weights_scale
+        self.P['w'] = np.random.standard_normal(
+            (kernel_size, kernel_size, self.input_channels, self.output_channels)) / weights_scale
         self.P['b'] = np.random.standard_normal(self.output_channels) / weights_scale
 
         self.G['w'] = np.zeros(self.P['w'].shape)
         self.G['b'] = np.zeros(self.P['b'].shape)
         self.output_image = self.eta.shape
 
-    def forward(self,x):
+    def forward(self, x):
         col_weights = self.P['w'].reshape([-1, self.output_channels])
         self.col_image = []
         conv_out = np.zeros(self.eta.shape)
@@ -44,7 +47,7 @@ class ConvLayer(object):
         else:
             return self.activation.forward(conv_out)
 
-    def backward(self,dL_da,alpha=0.00001, weight_decay=0.0004):
+    def backward(self, dL_da, alpha=0.00001, weight_decay=0.0004):
         # 避免过拟合，可考虑删除
         self.P['w'] *= (1 - weight_decay)
         self.P['b'] *= (1 - weight_decay)
@@ -57,6 +60,7 @@ class ConvLayer(object):
             self.G['w'] += np.dot(self.col_image[i].T, col_delta[i]).reshape(self.G['w'].shape)
         self.G['b'] += np.sum(col_delta, axis=(0, 1))
 
+
 def im2col(image, kernel_size):
     image_col = []
     for i in range(0, image.shape[1] - kernel_size + 1, 1):
@@ -67,26 +71,27 @@ def im2col(image, kernel_size):
 
     return image_col
 
+
 if __name__ == "__main__":
 
-    img = np.ones((1, 4, 4, 1))   # batchsize, width, height, channel
+    img = np.ones((1, 4, 4, 1))  # batchsize, width, height, channel
     print("img:", img)
 
     img *= 2
-    print("img:",img)
+    print("img:", img)
 
-    conv = ConvLayer(img.shape, 2, 3, 1,relu())
+    conv = ConvLayer(img.shape, 2, 3, 1, relu())
 
     next = conv.forward(img)
-    print("next:",next)
+    print("next:", next)
 
     next1 = next.copy() + 1
-    print("next1:",next1)
+    print("next1:", next1)
 
-    print("w:",conv.G['w'])
+    print("w:", conv.G['w'])
     print("b:", conv.G['b'])
 
-    conv.backward(next1-next)
+    conv.backward(next1 - next)
 
-    print("w:",conv.G['w'])
+    print("w:", conv.G['w'])
     print("b:", conv.G['b'])
