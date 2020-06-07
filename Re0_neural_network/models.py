@@ -1,5 +1,7 @@
-# TODO add batch size support
-class Model:
+import numpy as np
+
+
+class Sequential:
     def __init__(self):
         self.layers = []
 
@@ -17,7 +19,10 @@ class Model:
             self.G.append(layer.G)
             print("layer " + str(i) + " parameters: " + str(layer.P['w'].size + layer.P['b'].size))
 
-    def config(self, optimizer=None, loss=None, metrics=None, lr=None, **kwargs):
+    def config(self, optimizer=None, loss=None, metrics=None, lr=None, batch_size=None, **kwargs):
+        if batch_size is not None:
+            self.batch_size = batch_size
+
         if loss is not None:
             self.loss = loss
 
@@ -56,15 +61,23 @@ class Model:
         loss = self.forward(x, y)
         return loss
 
-    def fit(self, train_x_data, train_y_data, lr):
-        # TODO ramdom choose x from x_data
+    def fit(self, train_x_data, train_y_data, lr, shuffle=True):
+        """
+        parameters:
+            train_x_data : shape(N,x,1)
+        """
         losses = []
-        # REVIEW shape of train_x_data and train_y_data ?
-        for i in range(train_x_data.shape[0]):
-            x = train_x_data[i]
-            x = x.reshape(x.shape[0], 1)
-            y = train_y_data[i]
-            y = y.reshape(y.shape[0], 1)
-            loss = self.train(x, y).reshape(1)
+
+        if shuffle:
+            state = np.random.get_state()
+            np.random.shuffle(train_x_data)
+            np.random.set_state(state)
+            np.random.shuffle(train_y_data)
+
+        for i in range(train_x_data.shape[0] // self.batch_size): # drop last batch if not full
+            x = train_x_data[i * self.batch_size:(i + 1) * self.batch_size]
+            y = train_y_data[i * self.batch_size:(i + 1) * self.batch_size]
+
+            loss = self.train(x, y).mean()
             losses.append(loss)
         return losses
