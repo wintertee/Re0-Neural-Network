@@ -3,13 +3,16 @@ from Re0_neural_network import activations, initializers, layers, losses, models
 import numpy as np
 import matplotlib.pyplot as plt
 
+# load dataset
 mnist = np.load('datasets/mnist.npz')
 train_images = mnist['train_images']
 train_labels = mnist['train_labels']
 test_images = mnist['test_images']
 test_labels = mnist['test_labels']
 
+# flatten image
 train_images = train_images.reshape(60000, 784).astype(float)
+# normalisation
 train_images /= 255
 
 # one-hot encode
