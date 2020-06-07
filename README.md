@@ -1,2 +1,25 @@
-# BCD-Neural-Network
-A neural network using block coordinate descent designed from scratch
+# Re0-Neural-Network
+
+A neural network designed from scratch.
+
+## structure
+
+Our coding structure is like this:
+
+```
++-----------------------------------------------------------+
+|                          models                           |
++--------------+--------+-----------+-----------------------+
+|linear(Dense) | Conv2d | MaxPool2D |          ...          |
++------------+-+--------+---------+-+-------+---------+-----+
+             ^                    ^         ^         ^
+             |                    |         |         |
++------------+--------------+ +---+---+ +---+--+ +----+-----+
+|          layers           | |metrics| |losses| |optimizers|
++-----+--------------+------+ +-------+ +------+ +----------+
+      ^              ^
+      |              |
++-----+-----+  +-----+------+
+|actications|  |initializers|
++-----------+  +------------+
+```
