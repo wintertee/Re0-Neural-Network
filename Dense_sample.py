@@ -11,7 +11,7 @@ test_images = mnist['test_images']
 test_labels = mnist['test_labels']
 
 # flatten image
-train_images = train_images.reshape(60000, 784, 1).astype(float)
+train_images = train_images.reshape(*(train_images.shape), 1).astype(float)
 # normalisation
 train_images /= 255
 
@@ -20,6 +20,7 @@ targets = train_labels.reshape(-1)
 train_labels = np.eye(10)[targets].reshape(60000, 10, 1)
 
 model = models.Sequential()
+model.append(layers.Flatten())
 model.append(layers.Dense(784, 64, activations.relu, initializers.He))
 model.append(layers.Dense(64, 10, activations.softmax, initializers.He))
 model.build()

@@ -60,9 +60,27 @@ class Dense(Layer):
             dL_dz.append(dL_da[i] * da_dz[i])  # NOTE * not np.dot here!
             G_w.append(np.dot(dL_dz[i], self.x[i].T))  # dL_dw
             dL_dx.append(np.dot(self.P['w'].T, dL_dz[i]))
-        
+
         G_b = dL_dz
         self.G['w'] = np.mean(G_w, axis=0)
         self.G['b'] = np.mean(G_b, axis=0)
 
         return np.stack(dL_dx)  # NOTE x is the `a` in the last layer
+
+
+class Flatten(Layer):
+    def __init__(self):
+        self.P = {}
+        self.G = {}
+        self.P['w'] = np.array([])
+        self.P['b'] = np.array([])
+        self.G['w'] = np.array([])
+        self.G['b'] = np.array([])
+
+    def forward(self, x):
+        self.original_shape = x.shape
+        size = x.size // x.shape[0]
+        return x.reshape(x.shape[0], size, 1)
+
+    def backward(self, dL_da):
+        return dL_da.reshape(self.original_shape)
