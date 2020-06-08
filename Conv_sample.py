@@ -26,10 +26,14 @@ train_labels = np.eye(10)[targets].reshape(60000, 10, 1)
 targets = test_labels.reshape(-1)
 test_labels = np.eye(10)[targets].reshape(10000, 10, 1)
 
+batch_size = 20
+
 # model
 model = models.Sequential()
+model.append(layers.Conv2d(train_images.shape, 2, 3, 1, batch_size, activations.relu()))
+model.append(layers.MaxPool2d(26, 2, 2, 2, batch_size))
 model.append(layers.Flatten())
-model.append(layers.Dense(784, 64, activations.relu, initializers.He))
+model.append(layers.Dense(338, 64, activations.relu, initializers.He))
 model.append(layers.Dense(64, 10, activations.softmax, initializers.He))
 model.build()
 
