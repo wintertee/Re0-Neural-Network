@@ -10,15 +10,22 @@ train_labels = mnist['train_labels']
 test_images = mnist['test_images']
 test_labels = mnist['test_labels']
 
-# flatten image
+# add 1 dim to the last axis of the image
 train_images = train_images.reshape(*(train_images.shape), 1).astype(float)
+test_images = test_images.reshape(*(test_images.shape), 1).astype(float)
+
 # normalisation
 train_images /= 255
+test_images /= 255
 
 # one-hot encode
 targets = train_labels.reshape(-1)
 train_labels = np.eye(10)[targets].reshape(60000, 10, 1)
 
+targets = test_labels.reshape(-1)
+test_labels = np.eye(10)[targets].reshape(10000, 10, 1)
+
+# model
 model = models.Sequential()
 model.append(layers.Flatten())
 model.append(layers.Dense(784, 64, activations.relu, initializers.He))
@@ -33,35 +40,45 @@ model.config(optimizer=optimizers.SGD,
 # model.config(optimizer=optimizers.PRBCD, loss=losses.Crossentropy, lr=0.001)
 # model.config(optimizer=optimizers.RCD, loss=losses.Crossentropy, lr=0.001, n=10000)
 
-losses = []
-metrics = []
-for epoch in range(1, 6):
-    loss, metric = model.fit(train_images, train_labels, 0.001)
-    loss = np.mean(loss)
-    metric = np.mean(metric)
-    losses.append(loss)
-    metrics.append(metric)
-    print("epoch: {} loss: {:.3f} accuracy: {:.2%}".format(epoch, loss, metric))
+epochs = range(1, 6)
 
-epochs = range(1, len(losses) + 1)
+train_losses = []
+train_metrics = []
+val_losses = []
+val_metrics = []
+for epoch in epochs:
+    train_loss, train_metric, val_loss, val_metric = model.fit(train_images, train_labels, 0.001)
+
+    train_losses.append(train_loss)
+    train_metrics.append(train_metric)
+    val_losses.append(val_loss)
+    val_metrics.append(val_metric)
+    print("epoch: {} train_loss: {:.3f} train_accuracy: {:.2%} val_loss: {:.3f} val_accuracy: {:.2%}".format(epoch, train_loss, train_metric, val_loss, val_metric))
 
 # visualize
-plt.figure(figsize=(4, 8))
+plt.figure(figsize=(12, 4))
 
-plt.subplot(2, 1, 1)
-plt.plot(epochs, losses, label='loss')
-plt.title('Training loss')
+plt.subplot(1, 2, 1)
+plt.plot(epochs, train_losses, 'o', label='train')
+plt.plot(epochs, val_losses, label='val')
+plt.title('Training and validation loss')
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
 plt.legend()
 plt.grid(True)
 
-plt.subplot(2, 1, 2)
-plt.plot(epochs, metrics, label='accuracy')
-plt.title('Training accuracy')
+plt.subplot(1, 2, 2)
+plt.plot(epochs, train_metrics, 'o', label='train')
+plt.plot(epochs, val_metrics, label='val')
+plt.title('Training and validation accuracy')
 plt.xlabel('Epochs')
 plt.ylabel('Accuracy')
 plt.legend()
 plt.grid(True)
 
 plt.show()
+
+# evaluate on test set
+print("evaluate on test set")
+loss, metric = model.val(test_images, test_labels)
+print("loss: {:.3f} accuracy:  {:.2%}".format(loss, metric))
