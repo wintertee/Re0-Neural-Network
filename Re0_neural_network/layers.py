@@ -32,20 +32,13 @@ class Dense(Layer):
         self.P['b'] = np.zeros((out_channels, 1))
 
     def forward(self, x):
-        # 先把 x 分解成 batch_size 个矩阵 (in ,1)
-        # 分别计算a
-        # 最后通过 np.stack 把 a 堆叠成 (batch_size, out, 1)
-        self.x = x
         self.batch_size = x.shape[0]
-        a = []
-        for i in range(self.batch_size):
-            x_single = x[i]
-            self.z = np.dot(self.P['w'], x_single) + self.P['b']
-            if self.activation is None:
-                a.append(self.z)
-            else:
-                a.append(self.activation.forward(self.z))
-        self.a = np.stack(a)
+        self.x = x
+        z = np.einsum('jk,ikl->ijl', self.P['w'], self.x, optimize=True) + self.P['b']
+        if self.activation is None:
+            self.a = z
+        else:
+            self.a = self.activation.forward(z)
         return self.a
 
     def backward(self, dL_da):
@@ -54,20 +47,15 @@ class Dense(Layer):
         else:
             da_dz = self.activation.backward(self.a)
 
-        dL_dz = []
-        dL_dx = []
-        G_w = []
+        dL_dz = dL_da * da_dz
+        self.G['w'] = np.einsum('ijk,ilk->ijl', dL_dz, self.x, optimize=True)
+        dL_dx = np.einsum('kj,ikl->ijl', self.P['w'], dL_dz, optimize=True)
+        self.G['b'] = dL_dz
 
-        for i in range(self.batch_size):
-            dL_dz.append(dL_da[i] * da_dz[i])  # NOTE * not np.dot here!
-            G_w.append(np.dot(dL_dz[i], self.x[i].T))  # dL_dw
-            dL_dx.append(np.dot(self.P['w'].T, dL_dz[i]))
+        self.G['w'] = np.sum(self.G['w'], axis=0)
+        self.G['b'] = np.sum(self.G['b'], axis=0)
 
-        G_b = dL_dz
-        self.G['w'] = np.mean(G_w, axis=0)
-        self.G['b'] = np.mean(G_b, axis=0)
-
-        return np.stack(dL_dx)  # NOTE x is the `a` in the last layer
+        return dL_dx  # NOTE x is the `a` in the last layer
 
 
 class Flatten(Layer):
