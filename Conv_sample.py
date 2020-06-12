@@ -61,7 +61,7 @@ for epoch in epochs:
     val_losses.append(val_loss)
     val_metrics.append(val_metric)
     print(
-        "epoch: {} train_loss: {:.3f} train_accuracy: {:.2%} val_loss: {:.3f} val_accuracy: {:.2%} time_per_epoch: {:.1f}"
+        "epoch: {} train_loss: {:.3f} train_accuracy: {:.2%} val_loss: {:.3f} val_accuracy: {:.2%} time_per_epoch: {:.1f}s"
         .format(epoch, train_loss, train_metric, val_loss, val_metric,
                 time.time() - begin_time))
 
