@@ -36,7 +36,7 @@ class SGD(Optimizer):
 
 class PRBCD(Optimizer):
     """
-    "pseudo" randomised block coordinate descent
+    "pseudo" randomized block coordinate descent
     """
     def step(self, x, y):
         super().step(x, y)
@@ -109,8 +109,8 @@ class RCD(Optimizer):
 
         for k in range(0, self.all_list.shape[0] + 1, self.n):
             min_layer = min(self.all_list[k + kk][1] for kk in range(self.n) if k + kk < self.all_list.shape[0])
-            super().step(x, y,
-                         min_index=min_layer)  # only backward to the last layer whose parameters need to be updated
+            # only backward to the last layer whose parameters need to be updated
+            super().step(x, y, min_index=min_layer)
             for kk in range(self.n):
                 index = k + kk
                 if index == self.all_list.shape[0]:
