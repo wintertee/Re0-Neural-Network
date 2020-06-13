@@ -14,10 +14,7 @@ class Loss:
 class Crossentropy(Loss):
     @staticmethod
     def forward(pred, truth):
-        a = []
-        for i in range(pred.shape[0]):
-            a.append(-np.dot(truth[i].T, np.log(pred[i])))
-        return np.mean(a)
+        return - np.mean(np.einsum('ijk,ijk->i', truth, np.log(pred)))
 
     @staticmethod
     def backward(pred, truth):
