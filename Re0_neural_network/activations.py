@@ -45,7 +45,7 @@ class softmax(Activation):
         softmax only
         """
         exp_z = np.exp(z)
-        return exp_z / np.sum(exp_z)
+        return exp_z / np.sum(exp_z, axis=(1, 2))[:, np.newaxis][:, np.newaxis]
 
     @staticmethod
     def backward(a):
