@@ -15,21 +15,21 @@ class Layer:
 
 
 class Dense(Layer):
-    def __init__(self, in_channels, out_channels, activation=None, initializer=None):
+    def __init__(self, in_features, out_features, activation=None, initializer=None):
 
         # initialize properties
-        self.in_channels = in_channels
-        self.out_channels = out_channels
+        self.in_features = in_features
+        self.out_features = out_features
         self.activation = activation
 
         # initialize parameters
         self.P = {}  # parameters
         self.G = {}  # gradients
         if initializer:
-            self.P['w'] = initializer((out_channels, in_channels))
+            self.P['w'] = initializer((out_features, in_features))
         else:
-            self.P['w'] = np.ones((out_channels, in_channels))
-        self.P['b'] = np.zeros((out_channels, 1))
+            self.P['w'] = np.ones((out_features, in_features))
+        self.P['b'] = np.zeros((out_features, 1))
 
     def forward(self, x):
         self.batch_size = x.shape[0]
@@ -43,7 +43,7 @@ class Dense(Layer):
 
     def backward(self, dL_da):
         if self.activation is None:
-            da_dz = np.ones((self.batch_size, self.out_channels, 1))
+            da_dz = np.ones((self.batch_size, self.out_features, 1))
         else:
             da_dz = self.activation.backward(self.a)
 
