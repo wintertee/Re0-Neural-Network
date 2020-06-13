@@ -52,8 +52,8 @@ class Dense(Layer):
         dL_dx = np.einsum('kj,ikl->ijl', self.P['w'], dL_dz, optimize=True)
         self.G['b'] = dL_dz
 
-        self.G['w'] = np.sum(self.G['w'], axis=0)
-        self.G['b'] = np.sum(self.G['b'], axis=0)
+        self.G['w'] = np.mean(self.G['w'], axis=0)
+        self.G['b'] = np.mean(self.G['b'], axis=0)
 
         return dL_dx  # NOTE x is the `a` in the last layer
 
