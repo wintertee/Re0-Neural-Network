@@ -123,3 +123,29 @@ class RCD(Optimizer):
                     self.G[self.all_list[index][1]]['b'][self.all_list[index][2]][self.all_list[index][3]]  # noqa: E122
 
         return (self.loss, self.metric)
+
+    
+    
+class PBCSCD(Optimizer):
+    """
+    "pseudo" Block-Cyclic Stochastic Coordinate 
+    
+    """
+    
+    
+    def step(self, x, y):
+        k = self.model.batch_size//(self.layer_numbers+1)##number samples used to calculate gradient
+        L_layer = [x for x in range(self.layer_numbers)] ##liste of number of layers
+        
+        for i in range (self.layer_numbers):
+            layer_i = L_layer[np.random.randint(len(L_layer))]##randomly choose a layer
+            x_i = x[i*k:(i+1)*k]## samples used to calculate gradient
+            y_i = y[i*k:(i+1)*k]
+           
+            super().step(x_i, y_i)
+            
+            self.P[layer_i]['w'] -= self.lr * self.G[layer_i]['w']##update parameters of the randomly chosen layer
+            self.P[layer_i]['b'] -= self.lr * self.G[layer_i]['b']
+            
+            L_layer.remove(layer_i) ## the layer whos parameters that have been updated will be removed from the list so that all parameters will be updated in one epoch
+        return (self.loss, self.metric)
