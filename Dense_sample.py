@@ -35,7 +35,7 @@ model.build()
 
 model.config(optimizer=optimizers.SGD,
              loss=losses.Crossentropy,
-             lr=0.001,
+             lr=0.01,
              batch_size=20,
              metric=metrics.categorical_accuracy)
 # model.config(optimizer=optimizers.PRBCD, loss=losses.Crossentropy, lr=0.001)
@@ -50,7 +50,7 @@ val_metrics = []
 
 for epoch in epochs:
     begin_time = time.time()
-    train_loss, train_metric, val_loss, val_metric = model.fit(train_images, train_labels, 0.001)
+    train_loss, train_metric, val_loss, val_metric = model.fit(train_images, train_labels)
 
     train_losses.append(train_loss)
     train_metrics.append(train_metric)

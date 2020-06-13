@@ -54,7 +54,7 @@ val_metrics = []
 
 for epoch in epochs:
     begin_time = time.time()
-    train_loss, train_metric, val_loss, val_metric = model.fit(train_images, train_labels, 0.001)
+    train_loss, train_metric, val_loss, val_metric = model.fit(train_images, train_labels)
 
     train_losses.append(train_loss)
     train_metrics.append(train_metric)

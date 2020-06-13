@@ -77,7 +77,7 @@ class Sequential:
         loss, metric = self.forward(x, y)
         return (loss, metric)
 
-    def fit(self, x_data, y_data, lr, val_split=0.2, shuffle=True):
+    def fit(self, x_data, y_data, val_split=0.2, shuffle=True):
         """
         parameters:
             train_x_data : shape(N,x,1)
@@ -103,7 +103,6 @@ class Sequential:
         train_y = y_data[val_size:]
 
         for i in range(train_x.shape[0] // self.batch_size):  # drop last batch if not full
-            # 批量梯度累加？？？
 
             x = train_x[i * self.batch_size:(i + 1) * self.batch_size]
             y = train_y[i * self.batch_size:(i + 1) * self.batch_size]
