@@ -118,3 +118,69 @@ $$
 \mathbf a^{(L)} \in  M_{q,1}\\
 \phi(\mathbf z)=\phi(z_1,z_2,...,z_q)=[\phi(z_1)\quad\phi(z_2)\quad...\quad\phi(z_q)]^T
 $$
+
+
+
+## Couche de convolution (Conv2D)
+
+La couche de convolution est à la base du réseau CNN. Grâce à un filtre (noyau de convolution), nous pouvons extraire les caractéristiques de l'image. Afin de conserver autant que possible toutes les caractéristiques de l'image, nous envisageons généralement d'utiliser deux couches de convolution.
+
+Une couche de convolution contient deux opérations: propagation vers l'avant (forward) et propagation vers l'arrière (backward)：
+
+### Propagation forward
+
+Soit un filtre de taille $n\times n$, l’image d’entrée de taille $N\times N$, on a le résultat de cet image après ce filtre:
+
+$Soit \, (i,j)\in \mathbb{N}^2)\,\,\,\,\,\forall (i,j)\in \left [ 1,N-n+1 \right ]\\$
+$$
+z_{i,j}=\sum _{a\in[1,n],b\in[1,n]}x_{i+a-1,j+b-1}\times w_{a,b}+b_{a,b}
+$$
+où $w\,\, et\,\, b$ construisent un filtre.
+
+Et après une fonction d’activation:
+$$
+a_{i,j} = \phi(z_{i,j})
+$$
+Pour une couche de convolution, elle peut avoir plusieurs filtres.
+
+### Propagation backward
+
+Dans cette partie, on veut calculer le gradient de chaque poids comportant dans le filtre par l’incertitude définie par:
+$$
+\delta _{i,j} = \frac{\partial H}{\partial x_{i,j}}
+$$
+donc on a le gradient $\eta_{i,j}$ correspond à chaque $w_{i,j}$:
+$$
+\eta _{i,j}=\frac{\partial H}{\partial w_{i,j}}=\sum _m\sum _n\delta _{m,n}\times a_{i+m,j+n}
+$$
+Aussi pour le biais:
+$$
+\frac{\partial H}{\partial  b }=\sum _i\sum _j\delta _{i,j}
+$$
+
+## Couche de MaxPooling (MaxPool2D)
+
+On utilise dans ce projet MaxPooling pour faire le “downsampling”: d'une manière générale, en réduisant les caractéristiques pour obtenir l'effet de réduire le nombre de paramètres.
+
+Une couche de MaxPooling comporte aussi “forward” et “backward” mais sans fonction d’activation:
+
+### Propagation forward
+
+Soit la taille d’un MaxPool est $n\times n$,  l’image d’entrée de taille $N\times N$:
+$$
+a_{i,j} = max(x_{i,j},...,x_{i,j+n-1},x_{i+1,j},...,x_{i+n-1,j+n-1})
+$$
+En tout cas, on prend la valeur maximale pour chaque carré de taille $n \times n$ dans l’image d’entrée pour former une nouvelle matrice.
+
+### Propagation backward
+
+Il est difficile de décrire par les formes mathématiques:
+
+	* Premièrement, on prend l’image d’entrée et on garde tous les valeurs qu’on prend dans la propagation forward, et on rend les autres valeurs 0.
+	* Deuxièmement, on prend les incertitudes données par la propagation backward de la couche prochaine, on remplaces les valeurs qu’on garde dans la première étape une par une par ces incertitudes, on obtient donc le résultat de propagation backward de ce couche de MaxPooling
+
+Un exemple est donné pour illustrer cette propagation:
+
+
+
+<img src="https://i.loli.net/2020/06/14/SU5GjHPkCWrOpFn.png" alt="MaxPooling" style="zoom:24%;" />
