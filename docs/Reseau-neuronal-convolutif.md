@@ -59,42 +59,56 @@ On utilize le sous-gradient pour $a=0$
 
 *Softmax* est définie par:
 $$
-{\displaystyle \Phi (\mathbf {a} )_{j}={\frac {\mathrm {e} ^{a_{j}}}{\sum _{k=1}^{K}\mathrm {e} ^{a_{k}}}}}\quad\forall j \in \left[ 1,q \right]
+{\displaystyle a_j = \phi (\mathbf {z} )_{j}={\frac {\mathrm {e} ^{z_{j}}}{\sum _{k=1}^{K}\mathrm {e} ^{z_{k}}}}}\quad\forall j \in \left[ 1,q \right]
 $$
-si $j=i$ :
+Pour sa dérivée partielle, si $j=i$ :
 $$
 \begin{align*}
-\frac{\partial \Phi_i}{\partial a_j}&=
-\frac{\partial \frac{e^{a_i}}{\sum_{k=1}^{N}e^{a_k}}}{\partial a_j}\\
-&=\frac{e^{a_i}(\sum_{k=1}^{N}{e^{a_k}})-e^{a_j}e^{a_i}}{(\sum_{k=1}^{N}{e^{a_k}})^2}\\
-&=\frac{e^{a_i}}{\sum_{k=1}^{N}{e^{a_k}}}\frac{(\sum_{k=1}^{N}{e^{a_k}}) - e^{a_j}}{\sum_{k=1}^{N}{e^{a_k}}}\\
-&=\Phi_i(1-\Phi_j)
+\frac{\partial \phi_i}{\partial z_j}&=
+\frac{\partial \frac{e^{z_i}}{\sum_{k=1}^{N}e^{z_k}}}{\partial z_j}\\
+&=\frac{e^{z_i}(\sum_{k=1}^{N}{e^{z_k}})-e^{z_j}e^{z_i}}{(\sum_{k=1}^{N}{e^{z_k}})^2}\\
+&=\frac{e^{z_i}}{\sum_{k=1}^{N}{e^{z_k}}}\frac{(\sum_{k=1}^{N}{e^{z_k}}) - e^{z_j}}{\sum_{k=1}^{N}{e^{z_k}}}\\
+&=\phi_i(1-\phi_j)
 \end{align*}
 $$
 si $j\neq i$ :
 $$
 \begin{align*}
-\frac{\partial \Phi_i}{\partial a_j}&=
-\frac{\partial \frac{e^{a_i}}{\sum_{k=1}^{N}e^{a_k}}}{\partial a_j}\\
-&=\frac{0-e^{a_j}e^{a_i}}{(\sum_{k=1}^{N}{e^{a_k}})^2}\\
-&=-\frac{e^{a_j}}{\sum_{k=1}^{N}{e^{a_k}}}\frac{e^{a_i}}{\sum_{k=1}^{N}{e^{a_k}}}\\
-&=-\Phi_j \Phi_i
+\frac{\partial \phi_i}{\partial z_j}&=
+\frac{\partial \frac{e^{z_i}}{\sum_{k=1}^{N}e^{z_k}}}{\partial z_j}\\
+&=\frac{0-e^{z_j}e^{z_i}}{(\sum_{k=1}^{N}{e^{z_k}})^2}\\
+&=-\frac{e^{z_j}}{\sum_{k=1}^{N}{e^{z_k}}}\frac{e^{z_i}}{\sum_{k=1}^{N}{e^{z_k}}}\\
+&=-\phi_j \phi_i
 \end{align*}
 $$
 finalement:
 $$
-{\displaystyle \frac{\partial\Phi_i}{\partial a_j}(\mathbf a)=\left\{{\begin{array}{rcl}\Phi_i(1-\Phi_j)&{\mbox{si}}&i=j\\-\Phi_j\Phi_i&{\mbox{si}}&i\neq j\end{array}}\right.}
+{\displaystyle \frac{\partial\phi_i}{\partial z_j}(\mathbf z)=\left\{{\begin{array}{rcl}\phi_i(1-\phi_j)&{\mbox{si}}&i=j\\-\phi_j\phi_i&{\mbox{si}}&i\neq j\end{array}}\right.}
 $$
 
 ## Fonction de perte
 
-Dans ce projet, on utilise *entropie croisée* , définie par :
+Dans ce projet, on utilise *entropie croisée* $H$. Soit $\mathbf y \in M_{q,1}$ la vérité-terrain encodée one-hot,  $\mathbf  a$ la sortie de la derrière couche, alors :
 $$
-{\mathrm  {H}}(p,q)=-\sum _{x}p(x)\,\log q(x).\!
+{\mathrm  {H}}(\mathbf y,\mathbf a)=-\sum _{j=1}^q y_j\log a_j.\!
 $$
-未完成
+Sa dérivée, pour la simplicité, on calcule $\frac{\partial H(\mathbf y , \phi ( \mathbf z))}{\partial z_i}=\frac{\partial H(\mathbf y , \mathbf a)}{\partial z_i}$
+$$
+\begin{align*}
+\frac{\partial H(\mathbf y , \mathbf a)}{\partial z_i}&=
+-\sum _{j=1}^q y_j \frac{\partial \log a_j}{\partial z_i}\\
+&=-\sum _{j=1}^q y_j \frac{\partial a_j}{a_j \partial z_i}\\
+&=-y_i\frac{a_i(1-a_i)}{a_i}-\sum _{j=1,j\neq i}^q y_j \frac{- a_i a_j}{a_j}\\
+&=-y_i(1-a_i)+\sum _{j=1,j\neq i}^q y_j a_i\\
+&=-y_i +a_i \sum _{j=1}^q y_j\\
+&=a_i-y_i
+\end{align*}
+$$
+
 
 ## Couche linéaire
+
+Pour une couche linéaire, les méthodes sont les même que celles d'un neurone, sauf que les variables sont représentées en forme matricielle.
 
 Pour la  $L$-ième couche dans un réseaux séquentiel dont l'entrée est de dimension $p$, la sortie est de dimension $q$ , les paramètres se représentent en forme matricielle.
 $$
@@ -102,10 +116,5 @@ $$
 \mathbf W^{(L)} \in  M_{q,p}\\
 \mathbf z^{(L)} \in  M_{q,1}\\
 \mathbf a^{(L)} \in  M_{q,1}\\
-\Phi(\mathbf z)=\phi(z_1,z_2,...,z_q)=[\phi(z_1)\quad\phi(z_2)\quad...\quad\phi(z_q)]^T
+\phi(\mathbf z)=\phi(z_1,z_2,...,z_q)=[\phi(z_1)\quad\phi(z_2)\quad...\quad\phi(z_q)]^T
 $$
-Les dérivations s'écritent sous forme matricielle:
-$$
-\frac{\partial \Phi}{\partial \mathbf z}= \Phi'\cdot
-$$
-未完成
