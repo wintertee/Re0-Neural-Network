@@ -77,7 +77,7 @@ class Sequential:
         loss, metric = self.forward(x, y)
         return (loss, metric)
 
-    def fit(self, x_data, y_data, val_split=0.2, shuffle=True):
+    def fit(self, x_data, y_data, val_split=0.2, shuffle=True, verbose=0):
         """
         parameters:
             train_x_data : shape(N,x,1)
@@ -102,7 +102,9 @@ class Sequential:
         train_x = x_data[val_size:]
         train_y = y_data[val_size:]
 
-        for i in range(train_x.shape[0] // self.batch_size):  # drop last batch if not full
+        all_iter = train_x.shape[0] // self.batch_size
+
+        for i in range(all_iter):  # drop last batch if not full
 
             x = train_x[i * self.batch_size:(i + 1) * self.batch_size]
             y = train_y[i * self.batch_size:(i + 1) * self.batch_size]
@@ -118,5 +120,8 @@ class Sequential:
 
             val_losses.append(val_loss)
             val_metrics.append(val_metric)
+
+            if verbose == 1:
+                print("\r{}/{}".format(i, all_iter), end="")
 
         return (np.mean(train_losses), np.mean(train_metrics), np.mean(val_losses), np.mean(val_metrics))
