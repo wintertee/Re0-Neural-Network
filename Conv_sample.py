@@ -30,16 +30,18 @@ batch_size = 20
 
 # model
 model = models.Sequential()
-model.append(layers.Conv2d(train_images.shape, 2, 3, 1, batch_size, activations.relu()))
-model.append(layers.MaxPool2d(26, 2, 2, 2, batch_size))
+model.append(layers.Conv2d(train_images.shape, output_channels=8, kernel_size=3, activation=activations.relu))
+model.append(layers.MaxPool2d(kernel_size=2))
+model.append(layers.Conv2d((60000, 13, 13, 8), output_channels=8, kernel_size=3, activation=activations.relu))
+model.append(layers.MaxPool2d(kernel_size=2))
 model.append(layers.Flatten())
-model.append(layers.Dense(338, 64, activations.relu, initializers.He))
+model.append(layers.Dense(200, 64, activations.relu, initializers.He))
 model.append(layers.Dense(64, 10, activations.softmax, initializers.He))
 model.build()
 
 model.config(optimizer=optimizers.SGD,
              loss=losses.Crossentropy,
-             lr=0.001,
+             lr=0.01,
              batch_size=20,
              metric=metrics.categorical_accuracy)
 # model.config(optimizer=optimizers.PRBCD, loss=losses.Crossentropy, lr=0.001)
@@ -54,7 +56,7 @@ val_metrics = []
 
 for epoch in epochs:
     begin_time = time.time()
-    train_loss, train_metric, val_loss, val_metric = model.fit(train_images, train_labels)
+    train_loss, train_metric, val_loss, val_metric = model.fit(train_images, train_labels, verbose=1)
 
     train_losses.append(train_loss)
     train_metrics.append(train_metric)

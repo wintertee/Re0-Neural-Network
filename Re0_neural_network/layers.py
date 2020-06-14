@@ -77,19 +77,14 @@ class Flatten(Layer):
 
 
 class Conv2d(Layer):
-    def __init__(self, input_image_shape, output_channels, kernel_size, padding, batchsize, activation=None):
+    def __init__(self, input_image_shape, output_channels, kernel_size, activation=None):
 
         # initialize properties
         self.input_image_shape = input_image_shape
         self.input_channels = input_image_shape[-1]
         self.output_channels = output_channels
         self.kernel_size = kernel_size
-        self.padding = padding
         self.activation = activation
-        self.batchsize = batchsize
-
-        self.eta = np.zeros((batchsize, input_image_shape[1] - kernel_size + 1, input_image_shape[1] - kernel_size + 1,
-                             self.output_channels))
 
         # initialize parameters
         self.P = {}
@@ -102,7 +97,6 @@ class Conv2d(Layer):
 
         self.G['w'] = np.zeros(self.P['w'].shape)
         self.G['b'] = np.zeros(self.P['b'].shape)
-        self.output_size = self.eta.shape
 
     def im2col(self, image, kernel_size):
         image_col = []
@@ -115,6 +109,16 @@ class Conv2d(Layer):
         return image_col
 
     def forward(self, x):
+
+        # initialization
+        if not hasattr(self, 'batchsize'):
+            self.batchsize = x.shape[0]
+        if not hasattr(self, 'eta'):
+            self.eta = np.zeros((self.batchsize, self.input_image_shape[1] - self.kernel_size + 1,
+                                 self.input_image_shape[1] - self.kernel_size + 1, self.output_channels))
+        if not hasattr(self, 'output_size'):
+            self.output_size = self.eta.shape
+
         col_weights = self.P['w'].reshape([-1, self.output_channels])
         self.col_image = []
         self.a = np.zeros(self.eta.shape)
@@ -161,19 +165,13 @@ class Conv2d(Layer):
 
 
 class MaxPool2d(Layer):
-    def __init__(self, input_size, input_channel, channel_number, kernel_size, batchsize, stride=-1):  # 默认步长为池化核尺寸
-        self.input_size = input_size
-        self.channel_number = channel_number
+    def __init__(self, kernel_size, stride=-1):  # 默认步长为池化核尺寸
+
         self.kernel_size = kernel_size
-        self.index = np.zeros((input_channel))
         if stride == -1:
             self.stride = kernel_size
         else:
             self.stride = stride
-        self.output_size = (input_size - kernel_size) // self.stride + 1
-        self.batchsize = batchsize
-        self.output_matrix = np.zeros((self.batchsize, self.output_size, self.output_size, self.channel_number))
-        self.input_channel = input_channel
 
         self.P = {}
         self.G = {}
@@ -184,46 +182,70 @@ class MaxPool2d(Layer):
         self.delta_matrix = []
 
     def forward(self, input_image):
+
+        # initialization
+        if not hasattr(self, 'batchsize'):
+            self.batchsize = input_image.shape[0]
+        if not hasattr(self, 'input_size'):
+            self.input_size = input_image.shape[1]
+        if not hasattr(self, 'channel_number'):
+            self.channel_number = input_image.shape[3]
+        if not hasattr(self, 'output_size'):
+            self.output_size = (self.input_size - self.kernel_size) // self.stride + 1
+        if not hasattr(self, 'output_matrix'):
+            self.output_matrix = np.zeros((self.batchsize, self.output_size, self.output_size, self.channel_number))
+
+        self.edge = input_image.shape[1] % self.kernel_size
+        if self.edge != 0:
+            input_image = np.pad(input_image,
+                                 ((0, 0), (0, self.kernel_size - self.edge), (0, self.kernel_size - self.edge), (0, 0)),
+                                 'constant',
+                                 constant_values=0)
+
         self.input_image = input_image
-        for k in range(self.batchsize):
-            for d in range(self.channel_number):
-                for i in range(self.output_size):
-                    for j in range(self.output_size):
-                        self.output_matrix[k, i, j, d] = self.get_patch(input_image[k, :, :, d], i, j, self.kernel_size,
-                                                                        self.kernel_size, self.stride).max()
+
+        # for backward
+        self.delta_matrix = np.zeros((self.batchsize, self.input_size, self.input_size, self.channel_number))
+        self.max_index_matrix = np.zeros(
+            (self.batchsize, self.input_size, self.input_size, self.channel_number, 2)).astype(int)
+
+        for i in range(self.output_size):
+            for j in range(self.output_size):
+                patch_image = self.get_patch(self.input_image[:, :, :, :], i, j, self.kernel_size, self.kernel_size,
+                                             self.stride)
+                self.output_matrix[:, i, j, :] = patch_image.max()  # forward
+                max_index = self.argmax(patch_image)  # backward
+                self.max_index_matrix[:, i, j, :] = max_index
+
         return self.output_matrix
 
     def backward(self, dL_da):
-        input_image = self.input_image
-        # N = 1 / (1 + (self.input_size - self.kernel_size) // self.stride)**2
-        self.delta_matrix = np.zeros((self.batchsize, self.input_size, self.input_size, self.input_channel))
-        for m in range(self.batchsize):
-            for d in range(self.channel_number):
-                for i in range(self.output_size):
-                    for j in range(self.output_size):
-                        patch_image = self.get_patch(input_image[m, :, :, d], i, j, self.kernel_size, self.kernel_size,
-                                                     self.stride)
-                        k, l = self.get_max_index(patch_image)  # noqa: E741
-                        self.delta_matrix[m, i * self.stride + k, j * self.stride + l, d] += dL_da[m, i, j, d]
+        self.delta_matrix = np.zeros((self.batchsize, self.input_size, self.input_size, self.channel_number))
+        for i in range(self.output_size):
+            for j in range(self.output_size):
+                k, l = self.max_index_matrix[:, i, j, :, 0], self.max_index_matrix[:, i, j, :, 1]  # noqa: E741
+                for p in range(self.batchsize):
+                    for q in range(self.channel_number):
+                        self.delta_matrix[p, i * self.stride + k[p][q], j * self.stride + l[p][q], q] = dL_da[p, i, j,
+                                                                                                              q]
         return self.delta_matrix
 
-    def get_max_index(self, array):
-        max_i = 0
-        max_j = 0
-        max_value = 0
-        for i in range(array.shape[0]):
-            for j in range(array.shape[1]):
-                if array[i, j] > max_value:
-                    max_value = array[i, j]
-                    max_i, max_j = i, j
-        return max_i, max_j
+    def argmax(self, x):
+        """
+        x: (N, W, H, C)
+        return: (N, W, H, C)
+        """
+        # (N, W, H, C)
+        x = x.transpose(1, 2, 0, 3)  # (W, H, N, C)
+        shape = x.shape
+        x = x.reshape(shape[0] * shape[1], shape[2], shape[3])  # (W * H, N, C)
+        index = np.unravel_index(np.argmax(x, axis=0), (shape[0], shape[1]))  # (W_index, N, C), (H_index, N, C)
+        index = np.stack(index, axis=-1)  # (N, C, 2)
+        return index
 
     def get_patch(self, input_array, i, j, filter_width, filter_height, stride):
         start_i = i * stride
         start_j = j * stride
-        if input_array.ndim == 2:
-            input_array_conv = input_array[start_i:start_i + filter_height, start_j:start_j + filter_width]
-            return input_array_conv
-        elif input_array.ndim == 3:
-            input_array_conv = input_array[:, start_i:start_i + filter_height, start_j:start_j + filter_width]
-            return input_array_conv
+
+        input_array_conv = input_array[:, start_i:start_i + filter_height, start_j:start_j + filter_width, :]
+        return input_array_conv
