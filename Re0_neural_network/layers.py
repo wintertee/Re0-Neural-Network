@@ -77,25 +77,25 @@ class Flatten(Layer):
 
 
 class Conv2d(Layer):
-    def __init__(self, input_image, output_channels, kernel_size, padding, batchsize, activation=None):
+    def __init__(self, input_image_shape, output_channels, kernel_size, padding, batchsize, activation=None):
 
         # initialize properties
-        self.input_image = input_image
-        self.input_channels = input_image[-1]
+        self.input_image_shape = input_image_shape
+        self.input_channels = input_image_shape[-1]
         self.output_channels = output_channels
         self.kernel_size = kernel_size
         self.padding = padding
         self.activation = activation
         self.batchsize = batchsize
 
-        self.eta = np.zeros(
-            (batchsize, input_image[1] - kernel_size + 1, input_image[1] - kernel_size + 1, self.output_channels))
+        self.eta = np.zeros((batchsize, input_image_shape[1] - kernel_size + 1, input_image_shape[1] - kernel_size + 1,
+                             self.output_channels))
 
         # initialize parameters
         self.P = {}
         self.G = {}
 
-        weights_scale = math.sqrt(reduce(lambda x, y: x * y, input_image) / self.output_channels)
+        weights_scale = math.sqrt(reduce(lambda x, y: x * y, input_image_shape) / self.output_channels)
         self.P['w'] = np.random.standard_normal(
             (kernel_size, kernel_size, self.input_channels, self.output_channels)) / weights_scale
         self.P['b'] = np.random.standard_normal(self.output_channels) / weights_scale
@@ -117,21 +117,29 @@ class Conv2d(Layer):
     def forward(self, x):
         col_weights = self.P['w'].reshape([-1, self.output_channels])
         self.col_image = []
-        conv_out = np.zeros(self.eta.shape)
+        self.a = np.zeros(self.eta.shape)
         for i in range(self.batchsize):
             img_i = x[i][np.newaxis, :]
             self.col_image_i = self.im2col(img_i, self.kernel_size)
-            conv_out[i] = np.reshape(np.dot(self.col_image_i, col_weights) + self.P['b'], self.eta[0].shape)
+            self.a[i] = np.reshape(np.dot(self.col_image_i, col_weights) + self.P['b'], self.eta[0].shape)
             self.col_image.append(self.col_image_i)
         self.col_image = np.array(self.col_image)
+        self.z = self.a
         if self.activation is None:
-            return conv_out
+            return self.a
         else:
-            return self.activation.forward(conv_out)
+            self.a = self.activation.forward(self.a)
+            return self.a
 
     def backward(self, dL_da):
 
-        col_delta = np.reshape(dL_da, [self.batchsize, -1, dL_da.shape[3]])
+        if self.activation is None:
+            col_delta = np.reshape(dL_da, [self.batchsize, -1, dL_da.shape[3]])
+        else:
+            col_delta = self.activation.backward(self.a)
+            col_delta = dL_da
+            col_delta = np.reshape(col_delta, [self.batchsize, -1, dL_da.shape[3]])
+
         for i in range(self.batchsize):
             self.G['w'] += np.dot(self.col_image[i].T, col_delta[i]).reshape(self.G['w'].shape)
         self.G['b'] += np.sum(col_delta, axis=(0, 1))
@@ -147,7 +155,8 @@ class Conv2d(Layer):
         col_pad_eta = np.array(
             [self.im2col(pad_eta[i][np.newaxis, :], self.kernel_size) for i in range(self.batchsize)])
         next_eta = np.dot(col_pad_eta, col_flip_weights)
-        next_eta = np.reshape(next_eta, (self.batchsize, self.input_image[1], self.input_image[2], self.input_image[3]))
+        next_eta = np.reshape(
+            next_eta, (self.batchsize, self.input_image_shape[1], self.input_image_shape[2], self.input_image_shape[3]))
         return next_eta
 
 
