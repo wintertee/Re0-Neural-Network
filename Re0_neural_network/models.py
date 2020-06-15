@@ -102,9 +102,9 @@ class Sequential:
         train_x = x_data[val_size:]
         train_y = y_data[val_size:]
 
-        iterations = train_x.shape[0] // self.batch_size
+        all_iter = train_x.shape[0] // self.batch_size
 
-        for i in range(iterations):  # drop last batch if not full
+        for i in range(all_iter):  # drop last batch if not full
 
             x = train_x[i * self.batch_size:(i + 1) * self.batch_size]
             y = train_y[i * self.batch_size:(i + 1) * self.batch_size]
@@ -122,9 +122,6 @@ class Sequential:
             val_metrics.append(val_metric)
 
             if verbose == 1:
-                print("\r{}/{}".format(i, iterations), end="")
-
-        if verbose == 1:
-            print("done")
+                print("\r{}/{}".format(i, all_iter), end="")
 
         return (np.mean(train_losses), np.mean(train_metrics), np.mean(val_losses), np.mean(val_metrics))
