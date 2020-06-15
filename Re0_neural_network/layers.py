@@ -200,7 +200,7 @@ class MaxPool2d(Layer):
             input_image = np.pad(input_image,
                                  ((0, 0), (0, self.kernel_size - self.edge), (0, self.kernel_size - self.edge), (0, 0)),
                                  'constant',
-                                 constant_values=0)
+                                 constant_values=-1)
 
         self.input_image = input_image
 
@@ -217,6 +217,9 @@ class MaxPool2d(Layer):
                 max_index = self.argmax(patch_image)  # backward
                 self.max_index_matrix[:, i, j, :] = max_index
 
+        if (self.output_matrix != self.forward2(input_image)).any():
+            raise ValueError
+
         return self.output_matrix
 
     def backward(self, dL_da):
@@ -226,8 +229,11 @@ class MaxPool2d(Layer):
                 k, l = self.max_index_matrix[:, i, j, :, 0], self.max_index_matrix[:, i, j, :, 1]  # noqa: E741
                 for p in range(self.batchsize):
                     for q in range(self.channel_number):
-                        self.delta_matrix[p, i * self.stride + k[p][q], j * self.stride + l[p][q], q] = dL_da[p, i, j,
-                                                                                                              q]
+                        self.delta_matrix[p, i * self.stride + k[p][q], j * self.stride + l[p][q], q] += dL_da[p, i, j,
+                                                                                                               q]
+
+        if (self.delta_matrix != self.backward2(dL_da)).any():
+            raise ValueError
         return self.delta_matrix
 
     def argmax(self, x):
@@ -249,3 +255,48 @@ class MaxPool2d(Layer):
 
         input_array_conv = input_array[:, start_i:start_i + filter_height, start_j:start_j + filter_width, :]
         return input_array_conv
+
+    def forward2(self, input_image):
+        self.input_image = input_image
+        for k in range(self.batchsize):
+            for d in range(self.channel_number):
+                for i in range(self.output_size):
+                    for j in range(self.output_size):
+                        self.output_matrix[k, i, j, d] = self.get_patch2(input_image[k, :, :, d], i, j, self.kernel_size,
+                                                                        self.kernel_size, self.stride).max()
+        return self.output_matrix
+
+    def backward2(self, dL_da):
+        input_image = self.input_image
+        # N = 1 / (1 + (self.input_size - self.kernel_size) // self.stride)**2
+        self.delta_matrix = np.zeros((self.batchsize, self.input_size, self.input_size, self.channel_number))
+        for m in range(self.batchsize):
+            for d in range(self.channel_number):
+                for i in range(self.output_size):
+                    for j in range(self.output_size):
+                        patch_image = self.get_patch2(input_image[m, :, :, d], i, j, self.kernel_size, self.kernel_size,
+                                                      self.stride)
+                        k, l = self.get_max_index2(patch_image)  # noqa: E741
+                        self.delta_matrix[m, i * self.stride + k, j * self.stride + l, d] += dL_da[m, i, j, d]
+        return self.delta_matrix
+
+    def get_max_index2(self, array):
+        max_i = 0
+        max_j = 0
+        max_value = 0
+        for i in range(array.shape[0]):
+            for j in range(array.shape[1]):
+                if array[i, j] > max_value:
+                    max_value = array[i, j]
+                    max_i, max_j = i, j
+        return max_i, max_j
+
+    def get_patch2(self, input_array, i, j, filter_width, filter_height, stride):
+        start_i = i * stride
+        start_j = j * stride
+        if input_array.ndim == 2:
+            input_array_conv = input_array[start_i:start_i + filter_height, start_j:start_j + filter_width]
+            return input_array_conv
+        elif input_array.ndim == 3:
+            input_array_conv = input_array[:, start_i:start_i + filter_height, start_j:start_j + filter_width]
+            return input_array_conv

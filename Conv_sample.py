@@ -26,7 +26,7 @@ train_labels = np.eye(10)[targets].reshape(60000, 10, 1)
 targets = test_labels.reshape(-1)
 test_labels = np.eye(10)[targets].reshape(10000, 10, 1)
 
-batch_size = 20
+batch_size = 60
 
 # model
 model = models.Sequential()
@@ -42,7 +42,7 @@ model.build()
 model.config(optimizer=optimizers.SGD,
              loss=losses.Crossentropy,
              lr=0.01,
-             batch_size=20,
+             batch_size=batch_size,
              metric=metrics.categorical_accuracy)
 # model.config(optimizer=optimizers.PRBCD, loss=losses.Crossentropy, lr=0.001)
 # model.config(optimizer=optimizers.RCD, loss=losses.Crossentropy, lr=0.001, n=10000)
