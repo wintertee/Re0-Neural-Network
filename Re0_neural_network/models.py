@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 
 class Sequential:
@@ -27,10 +28,7 @@ class Sequential:
         print("total parameters: {}".format(np.sum(parameters)))
         print("===========================================")
 
-    def config(self, optimizer=None, loss=None, metric=None, lr=None, batch_size=None, **kwargs):
-        if batch_size is not None:
-            self.batch_size = batch_size
-            print("Batch size: " + str(batch_size))
+    def config(self, optimizer=None, loss=None, metric=None, lr=None, **kwargs):
 
         if loss is not None:
             self.loss = loss
@@ -77,17 +75,49 @@ class Sequential:
         loss, metric = self.forward(x, y)
         return (loss, metric)
 
-    def fit(self, x_data, y_data, val_split=0.2, shuffle=True, verbose=0):
+    def run_epoch(self, x_train, y_train, x_val, y_val, batch_size, verbose=0):
+
+        all_iter = x_train.shape[0] // batch_size
+
+        train_losses = np.zeros(all_iter)
+        train_metrics = np.zeros(all_iter)
+        val_losses = np.zeros(all_iter)
+        val_metrics = np.zeros(all_iter)
+
+        for i in range(all_iter):  # drop last batch if not full
+
+            x = x_train[i * batch_size:(i + 1) * batch_size]
+            y = y_train[i * batch_size:(i + 1) * batch_size]
+            train_loss, train_metric = self.train(x, y)
+
+            train_losses[i] = train_loss
+            train_metrics[i] = train_metric
+
+            j = int(i * x_val.size / (x_val.size + x_train.size))
+            x = x_val[j * batch_size:(j + 1) * batch_size]
+            y = y_val[j * batch_size:(j + 1) * batch_size]
+            val_loss, val_metric = self.val(x, y)
+
+            val_losses[i] = val_loss
+            val_metrics[i] = val_metric
+
+            if verbose == 2:
+                print("\r{}/{}".format(i, all_iter), end="")
+
+        return (train_losses.mean(), train_metrics.mean(), val_losses.mean(), val_metrics.mean())
+
+    def fit(self, x_data, y_data, epochs, batch_size, val_split=0.2, shuffle=True, verbose=0):
         """
         parameters:
             train_x_data : shape(N,x,1)
             shuffle: shuffle train data between each epoch
+            verbose: 0 nothing, 1 show loss and accuracy, 2 show progress bar
         """
 
-        train_losses = []
-        train_metrics = []
-        val_losses = []
-        val_metrics = []
+        train_losses = np.zeros(epochs)
+        train_metrics = np.zeros(epochs)
+        val_losses = np.zeros(epochs)
+        val_metrics = np.zeros(epochs)
 
         if shuffle:
             state = np.random.get_state()
@@ -97,31 +127,25 @@ class Sequential:
 
         # split val data
         val_size = int(val_split * x_data.shape[0])
-        val_x = x_data[:val_size]
-        val_y = y_data[:val_size]
-        train_x = x_data[val_size:]
-        train_y = y_data[val_size:]
+        x_val = x_data[:val_size]
+        y_val = y_data[:val_size]
+        x_train = x_data[val_size:]
+        y_train = y_data[val_size:]
 
-        all_iter = train_x.shape[0] // self.batch_size
+        for i in range(epochs):
 
-        for i in range(all_iter):  # drop last batch if not full
+            begin_time = time.time()
 
-            x = train_x[i * self.batch_size:(i + 1) * self.batch_size]
-            y = train_y[i * self.batch_size:(i + 1) * self.batch_size]
-            train_loss, train_metric = self.train(x, y)
+            train_loss, train_metric, val_loss, val_metric = self.run_epoch(x_train, y_train, x_val, y_val, batch_size, verbose=verbose)
 
-            train_losses.append(train_loss)
-            train_metrics.append(train_metric)
+            train_losses[i] = train_loss
+            train_metrics[i] = train_metric
+            val_losses[i] = val_loss
+            val_metrics[i] = val_metric
 
-            j = int(i * val_split)
-            x = val_x[j * self.batch_size:(j + 1) * self.batch_size]
-            y = val_y[j * self.batch_size:(j + 1) * self.batch_size]
-            val_loss, val_metric = self.val(x, y)
+            if verbose >= 1:
+                print("epoch: {} train_loss: {:.3f} train_accuracy: {:.2%} val_loss: {:.3f} val_accuracy: {:.2%} time_per_epoch: {:.1f}s".format(
+                    i, train_loss, train_metric, val_loss, val_metric,
+                    time.time() - begin_time))
 
-            val_losses.append(val_loss)
-            val_metrics.append(val_metric)
-
-            if verbose == 1:
-                print("\r{}/{}".format(i, all_iter), end="")
-
-        return (np.mean(train_losses), np.mean(train_metrics), np.mean(val_losses), np.mean(val_metrics))
+        return (train_losses, train_metrics, val_losses, val_metrics)

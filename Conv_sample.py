@@ -40,37 +40,21 @@ model.build()
 model.config(optimizer=optimizers.SGD,
              loss=losses.Crossentropy,
              lr=0.001,
-             batch_size=20,
              metric=metrics.categorical_accuracy)
 # model.config(optimizer=optimizers.PRBCD, loss=losses.Crossentropy, lr=0.001)
 # model.config(optimizer=optimizers.RCD, loss=losses.Crossentropy, lr=0.001, n=10000)
 
-epochs = range(1, 6)
+epoch = 3
+batch_size = 20
 
-train_losses = []
-train_metrics = []
-val_losses = []
-val_metrics = []
-
-for epoch in epochs:
-    begin_time = time.time()
-    train_loss, train_metric, val_loss, val_metric = model.fit(train_images, train_labels, verbose=1)
-
-    train_losses.append(train_loss)
-    train_metrics.append(train_metric)
-    val_losses.append(val_loss)
-    val_metrics.append(val_metric)
-    print(
-        "epoch: {} train_loss: {:.3f} train_accuracy: {:.2%} val_loss: {:.3f} val_accuracy: {:.2%} time_per_epoch: {:.1f}s"
-        .format(epoch, train_loss, train_metric, val_loss, val_metric,
-                time.time() - begin_time))
+train_losses, train_metrics, val_losses, val_metrics = model.fit(train_images, train_labels, epoch, batch_size, val_split=0.2, shuffle=True, verbose=2)
 
 # visualize
 plt.figure(figsize=(12, 4))
 
 plt.subplot(1, 2, 1)
-plt.plot(epochs, train_losses, 'o', label='train')
-plt.plot(epochs, val_losses, label='val')
+plt.plot(range(epoch), train_losses, 'o', label='train')
+plt.plot(range(epoch), val_losses, label='val')
 plt.title('Training and validation loss')
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
@@ -78,8 +62,8 @@ plt.legend()
 plt.grid(True)
 
 plt.subplot(1, 2, 2)
-plt.plot(epochs, train_metrics, 'o', label='train')
-plt.plot(epochs, val_metrics, label='val')
+plt.plot(range(epoch), train_metrics, 'o', label='train')
+plt.plot(range(epoch), val_metrics, label='val')
 plt.title('Training and validation accuracy')
 plt.xlabel('Epochs')
 plt.ylabel('Accuracy')
