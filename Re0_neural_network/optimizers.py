@@ -15,22 +15,81 @@ class Optimizer:
         self.lr = lr
         self.model = model
         self.layer_numbers = len(P)  # real number is layer_numbers + 1 !
+        self.count = 0
 
-    def step(self, x, y, min_index=0):
+    def step(self):
         """
         forward and backward.
-        need to update P and G, and return (loss, metric) in child classes
+        need to update P and return (loss, metric) in child classes
         """
-        self.loss, self.metric = self.model.forward(x, y)
-        self.model.backward(y, min_index=min_index)
+        # self.count += 1
+        # if self.count % 100 == 0:
+        #     self.lr *= 2
 
 
 class SGD(Optimizer):
     def step(self, x, y):
-        super().step(x, y)
+        super().step()
+        self.loss, self.metric = self.model.forward(x, y)
+        self.model.backward(y)
         for layer in range(self.layer_numbers):
             self.P[layer]['w'] -= self.lr * self.G[layer]['w']
             self.P[layer]['b'] -= self.lr * self.G[layer]['b']
+        return (self.loss, self.metric)
+
+
+class BCD(Optimizer):
+
+    def _update_w_b(self, layer, last_layer=None, x=None):
+        if x is None:
+            x = last_layer.P['a']
+        layer_output = layer.forward(x, update_a=False)
+
+        db = (-2 * layer.a + 2 * layer_output) * layer.activation.derivative(layer_output)
+        dw = np.einsum('ijk,ilk->jl', db, x)
+        layer.P['w'] -= self.lr * dw
+        layer.P['b'] -= self.lr * db.sum(axis=0)
+
+    def _update_a(self, layer, next_layer, last_layer=None, x=None):
+        next_layer_output = next_layer.forward(layer.a, update_a=False)
+        if x is None:
+            x = last_layer.P['a']
+        layer_output = layer.forward(x, update_a=False)
+
+        da = np.einsum('ijk,jl->ilk',(-2 * next_layer.P['a'] + 2 * next_layer_output) * next_layer.activation.backward(next_layer_output),next_layer.P['w'])
+        da += 2 * layer.P['a'] - 2 * layer_output
+
+        # layer.P['a'] += self.lr * da
+
+    def step(self, x, y, first):
+        super().step()
+        self.loss, self.metric = self.model.forward(x, y, update_a=first)
+
+        layer_1 = self.model.layers[-1]
+        layer_2 = self.model.layers[-2]
+
+        # da = self.model.loss.derivative(self.model.pred, y)
+        da = 2 * layer_1.P['a'] - 2 * y
+        layer_1.P['a'] -= da
+        # layer_1.P['a'] = y
+        self._update_w_b(layer_1, layer_2)
+
+        for layer_i in range(self.layer_numbers - 2, -1, -1):
+
+            layer = self.model.layers[layer_i]
+            next_layer = self.model.layers[layer_i + 1]
+            
+
+            if layer_i == 0:
+                self._update_a(layer, next_layer, x=x)
+                self._update_w_b(layer, x=x)
+            else:
+                last_layer = self.model.layers[layer_i - 1]
+                self._update_a(layer, next_layer, last_layer=last_layer)
+                self._update_w_b(layer, last_layer=last_layer)
+
+            
+
         return (self.loss, self.metric)
 
 

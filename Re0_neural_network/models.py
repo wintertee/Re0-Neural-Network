@@ -51,9 +51,9 @@ class Sequential:
 
         print("===========================================")
 
-    def forward(self, x, y):
+    def forward(self, x, y, update_a=True):
         for layer in self.layers:
-            x = layer.forward(x)
+            x = layer.forward(x, update_a=update_a)
 
         self.pred = x
         loss = self.loss.forward(self.pred, y)
@@ -67,15 +67,15 @@ class Sequential:
                 break
             dL_da = layer.backward(dL_da)
 
-    def train(self, x, y):
-        loss, metric = self.optimizer.step(x, y)
+    def train(self, x, y, **kwargs):
+        loss, metric = self.optimizer.step(x, y, **kwargs)
         return (loss, metric)
 
     def val(self, x, y):
-        loss, metric = self.forward(x, y)
+        loss, metric = self.forward(x, y, update_a=False)
         return (loss, metric)
 
-    def run_epoch(self, x_train, y_train, x_val, y_val, batch_size, verbose=0):
+    def run_epoch(self, epoch, x_train, y_train, x_val, y_val, batch_size, verbose=0):
 
         all_iter = x_train.shape[0] // batch_size
 
@@ -88,7 +88,8 @@ class Sequential:
 
             x = x_train[i * batch_size:(i + 1) * batch_size]
             y = y_train[i * batch_size:(i + 1) * batch_size]
-            train_loss, train_metric = self.train(x, y)
+            # train_loss, train_metric = self.train(x, y, first=(i==0 and epoch == 0))
+            train_loss, train_metric = self.train(x, y, first=True)
 
             train_losses[i] = train_loss
             train_metrics[i] = train_metric
@@ -119,7 +120,6 @@ class Sequential:
         y_train = y_data[val_size:]
         return (x_train, y_train, x_val, y_val)
 
-
     def fit(self, x_train, y_train, x_val=None, y_val=None, epochs=None, batch_size=None, val_split=None, shuffle=True, verbose=0):
         """
         parameters:
@@ -140,7 +140,7 @@ class Sequential:
 
             begin_time = time.time()
 
-            train_loss, train_metric, val_loss, val_metric = self.run_epoch(x_train, y_train, x_val, y_val, batch_size, verbose=verbose)
+            train_loss, train_metric, val_loss, val_metric = self.run_epoch(i, x_train, y_train, x_val, y_val, batch_size, verbose=verbose)
 
             train_losses[i] = train_loss
             train_metrics[i] = train_metric
