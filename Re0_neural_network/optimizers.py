@@ -28,9 +28,9 @@ class Optimizer:
 
 
 class SGD(Optimizer):
-    def step(self, x, y):
+    def step(self, x, y, **kwargs):
         super().step()
-        self.loss, self.metric = self.model.forward(x, y)
+        self.loss, self.metric = self.model.forward(x, y, True)
         self.model.backward(y)
         for layer in range(self.layer_numbers):
             self.P[layer]['w'] -= self.lr * self.G[layer]['w']
@@ -42,7 +42,7 @@ class BCD(Optimizer):
 
     def _update_w_b(self, layer, last_layer=None, x=None):
         if x is None:
-            x = last_layer.P['a']
+            x = last_layer.a
         layer_output = layer.forward(x, update_a=False)
 
         db = (-2 * layer.a + 2 * layer_output) * layer.activation.derivative(layer_output)
@@ -53,13 +53,13 @@ class BCD(Optimizer):
     def _update_a(self, layer, next_layer, last_layer=None, x=None):
         next_layer_output = next_layer.forward(layer.a, update_a=False)
         if x is None:
-            x = last_layer.P['a']
+            x = last_layer.a
         layer_output = layer.forward(x, update_a=False)
 
-        da = np.einsum('ijk,jl->ilk',(-2 * next_layer.P['a'] + 2 * next_layer_output) * next_layer.activation.backward(next_layer_output),next_layer.P['w'])
-        da += 2 * layer.P['a'] - 2 * layer_output
+        da = np.einsum('ijk,jl->ilk',(-2 * next_layer.a + 2 * next_layer_output) * next_layer.activation.backward(next_layer_output),next_layer.P['w'])
+        da += 2 * layer.a - 2 * layer_output
 
-        # layer.P['a'] += self.lr * da
+        layer.a -= self.lr * da
 
     def step(self, x, y, first):
         super().step()
@@ -68,10 +68,13 @@ class BCD(Optimizer):
         layer_1 = self.model.layers[-1]
         layer_2 = self.model.layers[-2]
 
+        if (self.model.pred != layer_1.a).any():
+            raise ValueError
+
         # da = self.model.loss.derivative(self.model.pred, y)
-        da = 2 * layer_1.P['a'] - 2 * y
-        layer_1.P['a'] -= da
-        # layer_1.P['a'] = y
+        # da = 2 * layer_1.a - 2 * y
+        # layer_1.a -= da
+        layer_1.a = y
         self._update_w_b(layer_1, layer_2)
 
         for layer_i in range(self.layer_numbers - 2, -1, -1):
@@ -91,6 +94,9 @@ class BCD(Optimizer):
             
 
         return (self.loss, self.metric)
+
+
+
 
 
 class PRBCD(Optimizer):

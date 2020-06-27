@@ -120,7 +120,7 @@ class Sequential:
         y_train = y_data[val_size:]
         return (x_train, y_train, x_val, y_val)
 
-    def fit(self, x_train, y_train, x_val=None, y_val=None, epochs=None, batch_size=None, val_split=None, shuffle=True, verbose=0):
+    def fit(self, x_train, y_train, x_val=None, y_val=None, epochs=None, batch_size=None, val_split=None, shuffle=True, verbose=0, freq=1):
         """
         parameters:
             train_x_data : shape(N,x,1)
@@ -147,7 +147,7 @@ class Sequential:
             val_losses[i] = val_loss
             val_metrics[i] = val_metric
 
-            if verbose >= 1:
+            if verbose >= 1 and i % freq == 0:
                 print("epoch: {} train_loss: {:.3f} train_accuracy: {:.2%} val_loss: {:.3f} val_accuracy: {:.2%} time_per_epoch: {:.1f}s".format(
                     i, train_loss, train_metric, val_loss, val_metric,
                     time.time() - begin_time))

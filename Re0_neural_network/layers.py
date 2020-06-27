@@ -41,7 +41,6 @@ class Dense(Layer):
             a = self.activation.forward(z)
 
         if update_a:
-            self.P['a'] = a
             self.a = a
         
         return a
@@ -73,15 +72,12 @@ class Flatten(Layer):
         self.G = {}
         self.P['w'] = np.array([])
         self.P['b'] = np.array([])
-        self.P['a'] = np.array([])
         self.G['w'] = np.array([])
         self.G['b'] = np.array([])
 
     def forward(self, x, update_a=False):
         self.original_shape = x.shape
         size = x.size // x.shape[0]
-        if update_a:
-            self.P['a'] = x.reshape(x.shape[0], size, 1)
         return x.reshape(x.shape[0], size, 1)
 
     def backward(self, dL_da):
