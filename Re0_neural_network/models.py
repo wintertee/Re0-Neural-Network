@@ -72,7 +72,7 @@ class Sequential:
         return (loss, metric)
 
     def val(self, x, y):
-        loss, metric = self.forward(x, y, update_a=False)
+        loss, metric = self.forward(x, y, update_a=True)
         return (loss, metric)
 
     def run_epoch(self, epoch, x_train, y_train, x_val, y_val, batch_size, verbose=0):
