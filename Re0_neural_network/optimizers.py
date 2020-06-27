@@ -46,9 +46,9 @@ class BCD(Optimizer):
         layer_output = layer.forward(x, update_a=False)
 
         db = (-2 * layer.a + 2 * layer_output) * layer.activation.derivative(layer_output)
-        dw = np.einsum('ijk,ilk->jl', db, x)
-        layer.P['w'] -= self.lr * dw
-        layer.P['b'] -= self.lr * db.sum(axis=0)
+        dw = np.einsum('ijk,ilk->jl', db, x, optimize=False)
+        layer.P['w'] -= self.lr * dw / db.shape[0]
+        layer.P['b'] -= self.lr * db.mean(axis=0)
 
     def _update_a(self, layer, next_layer, last_layer=None, x=None):
         next_layer_output = next_layer.forward(layer.a, update_a=False)
@@ -56,7 +56,7 @@ class BCD(Optimizer):
             x = last_layer.a
         layer_output = layer.forward(x, update_a=False)
 
-        da = np.einsum('ijk,jl->ilk',(-2 * next_layer.a + 2 * next_layer_output) * next_layer.activation.backward(next_layer_output),next_layer.P['w'])
+        da = np.einsum('ijk,jl->ilk', (-2 * next_layer.a + 2 * next_layer_output) * next_layer.activation.backward(next_layer_output),next_layer.P['w'])
         da += 2 * layer.a - 2 * layer_output
 
         layer.a -= self.lr * da

@@ -34,15 +34,15 @@ model.append(layers.Dense(784, 16, activations.relu, initializers.He))
 model.append(layers.Dense(16, 10, activations.softmax, initializers.He))
 model.build()
 
-model.config(optimizer=optimizers.SGD, loss=losses.Crossentropy, lr=0.01, metric=metrics.categorical_accuracy)
+# model.config(optimizer=optimizers.SGD, loss=losses.Crossentropy, lr=0.01, metric=metrics.categorical_accuracy)
 # model.config(optimizer=optimizers.PRBCD, loss=losses.Crossentropy, lr=0.001)
 # model.config(optimizer=optimizers.RCD, loss=losses.Crossentropy, lr=0.001, n=10000)
-# model.config(optimizer=optimizers.BCD,loss=losses.Crossentropy, lr=1e-4, metric=metrics.categorical_accuracy)
+model.config(optimizer=optimizers.BCD,loss=losses.Crossentropy, lr=1e-1, metric=metrics.categorical_accuracy)
 
-epoch = 10
+epoch = 200
 batch_size = 60000
 
-train_losses, train_metrics, val_losses, val_metrics = model.fit(train_images, train_labels, test_images, test_labels, epoch, batch_size, verbose=1, freq=1)
+train_losses, train_metrics, val_losses, val_metrics = model.fit(train_images, train_labels, test_images, test_labels, epoch, batch_size, verbose=1, freq=10)
 
 # visualize
 plt.figure(figsize=(12, 4))
