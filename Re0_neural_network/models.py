@@ -106,7 +106,21 @@ class Sequential:
 
         return (train_losses.mean(), train_metrics.mean(), val_losses.mean(), val_metrics.mean())
 
-    def fit(self, x_data, y_data, epochs, batch_size, val_split=0.2, shuffle=True, verbose=0):
+    def split(self, x_data, y_data, val_split, shuffle):
+        if shuffle:
+            state = np.random.get_state()
+            np.random.shuffle(x_data)
+            np.random.set_state(state)
+            np.random.shuffle(y_data)
+        val_size = int(val_split * x_data.shape[0])
+        x_val = x_data[:val_size]
+        y_val = y_data[:val_size]
+        x_train = x_data[val_size:]
+        y_train = y_data[val_size:]
+        return (x_train, y_train, x_val, y_val)
+
+
+    def fit(self, x_train, y_train, x_val=None, y_val=None, epochs=None, batch_size=None, val_split=None, shuffle=True, verbose=0):
         """
         parameters:
             train_x_data : shape(N,x,1)
@@ -119,18 +133,8 @@ class Sequential:
         val_losses = np.zeros(epochs)
         val_metrics = np.zeros(epochs)
 
-        if shuffle:
-            state = np.random.get_state()
-            np.random.shuffle(x_data)
-            np.random.set_state(state)
-            np.random.shuffle(y_data)
-
-        # split val data
-        val_size = int(val_split * x_data.shape[0])
-        x_val = x_data[:val_size]
-        y_val = y_data[:val_size]
-        x_train = x_data[val_size:]
-        y_train = y_data[val_size:]
+        if val_split:
+            x_train, y_train, x_val, y_val = self.split(x_train, y_train, val_split, shuffle)
 
         for i in range(epochs):
 
