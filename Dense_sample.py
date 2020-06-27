@@ -28,18 +28,18 @@ test_labels = np.eye(10)[targets].reshape(10000, 10, 1)
 # model
 model = models.Sequential()
 model.append(layers.Flatten())
-model.append(layers.Dense(784, 64, activations.relu, initializers.He))
-model.append(layers.Dense(64, 10, activations.softmax, initializers.He))
+model.append(layers.Dense(784, 16, activations.relu, initializers.He))
+model.append(layers.Dense(16, 10, activations.softmax, initializers.He))
 model.build()
 
 model.config(optimizer=optimizers.SGD, loss=losses.Crossentropy, lr=0.01, metric=metrics.categorical_accuracy)
 # model.config(optimizer=optimizers.PRBCD, loss=losses.Crossentropy, lr=0.001)
 # model.config(optimizer=optimizers.RCD, loss=losses.Crossentropy, lr=0.001, n=10000)
 
-epoch = 3
+epoch = 15
 batch_size = 20
 
-train_losses, train_metrics, val_losses, val_metrics = model.fit(train_images, train_labels, epoch, batch_size, val_split=0.2, shuffle=True, verbose=2)
+train_losses, train_metrics, val_losses, val_metrics = model.fit(train_images, train_labels, test_images, test_labels, epoch, batch_size, verbose=1)
 
 # visualize
 plt.figure(figsize=(12, 4))
@@ -63,8 +63,3 @@ plt.legend()
 plt.grid(True)
 
 plt.show()
-
-# evaluate on test set
-print("evaluate on test set")
-loss, metric = model.val(test_images, test_labels)
-print("loss: {:.3f} accuracy:  {:.2%}".format(loss, metric))
