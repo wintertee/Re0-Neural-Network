@@ -71,6 +71,8 @@ class BCD(Optimizer):
         self.loss, self.metric = self.model.forward(x, y, update_a=first)
         # self.loss, self.metric = self.model.forward(x, y, update_a=True)
 
+        # 这里如果是true收敛，是first不收敛。问题是update a的函数思路有问题
+
         layer_1 = self.model.layers[-1]
         layer_2 = self.model.layers[-2]
 
