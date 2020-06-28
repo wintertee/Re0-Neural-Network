@@ -68,8 +68,7 @@ class BCD(Optimizer):
         layer_1 = self.model.layers[-1]
         layer_2 = self.model.layers[-2]
 
-        if (self.model.pred != layer_1.a).any():
-            raise ValueError
+
 
         # da = self.model.loss.derivative(self.model.pred, y)
         # da = 2 * layer_1.a - 2 * y
