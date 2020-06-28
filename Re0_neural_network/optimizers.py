@@ -22,9 +22,6 @@ class Optimizer:
         forward and backward.
         need to update P and return (loss, metric) in child classes
         """
-        # self.count += 1
-        # if self.count % 100 == 0:
-        #     self.lr *= 2
 
 
 class SGD(Optimizer):
@@ -56,24 +53,22 @@ class BCD(Optimizer):
             x = last_layer.a
         layer_output = layer.forward(x, update_a=False)
 
-        da = np.einsum('ijk,jl->ilk', (-2 * next_layer.a + 2 * next_layer_output) * next_layer.activation.backward(next_layer_output),next_layer.P['w'])
+        da = np.einsum('ijk,jl->ilk', (-2 * next_layer.a + 2 * next_layer_output) * next_layer.activation.derivative(next_layer_output), next_layer.P['w'])
         da += 2 * layer.a - 2 * layer_output
 
         layer.a -= self.lr * da
 
     def step(self, x, y, first):
         super().step()
-        self.loss, self.metric = self.model.forward(x, y, update_a=first)
+        # self.loss, self.metric = self.model.forward(x, y, update_a=first)
+        self.loss, self.metric = self.model.forward(x, y, update_a=True)
 
         layer_1 = self.model.layers[-1]
         layer_2 = self.model.layers[-2]
 
-        if (self.model.pred != layer_1.a).any():
-            raise ValueError
-
         # da = self.model.loss.derivative(self.model.pred, y)
         # da = 2 * layer_1.a - 2 * y
-        # layer_1.a -= da
+        # layer_1.a -= self.lr * da
         layer_1.a = y
         self._update_w_b(layer_1, layer_2)
 
@@ -81,7 +76,6 @@ class BCD(Optimizer):
 
             layer = self.model.layers[layer_i]
             next_layer = self.model.layers[layer_i + 1]
-            
 
             if layer_i == 0:
                 self._update_a(layer, next_layer, x=x)
@@ -91,12 +85,7 @@ class BCD(Optimizer):
                 self._update_a(layer, next_layer, last_layer=last_layer)
                 self._update_w_b(layer, last_layer=last_layer)
 
-            
-
         return (self.loss, self.metric)
-
-
-
 
 
 class PRBCD(Optimizer):

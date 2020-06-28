@@ -21,4 +21,4 @@ class Crossentropy(Loss):
         return pred - truth
 
     def derivative(pred, truth):
-        return -truth / (1e-6 + pred)
+        return -truth / (1e-2 + pred)
