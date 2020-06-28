@@ -20,5 +20,6 @@ class Crossentropy(Loss):
     def backward(pred, truth):
         return pred - truth
 
+    @staticmethod
     def derivative(pred, truth):
         return -truth / (1e-2 + pred)

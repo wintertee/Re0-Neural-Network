@@ -40,7 +40,7 @@ model.build()
 model.config(optimizer=optimizers.BCD, loss=losses.Crossentropy, lr=0.1, metric=metrics.categorical_accuracy)
 
 epoch = 100
-batch_size = 600
+batch_size = 60000
 
 train_losses, train_metrics, val_losses, val_metrics = model.fit(train_images, train_labels, test_images, test_labels, epoch, batch_size, verbose=1, freq=1)
 

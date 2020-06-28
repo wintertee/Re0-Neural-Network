@@ -16,12 +16,17 @@ class Optimizer:
         self.model = model
         self.layer_numbers = len(P)  # real number is layer_numbers + 1 !
         self.count = 0
+        self.mu = 1
 
     def step(self):
         """
         forward and backward.
         need to update P and return (loss, metric) in child classes
         """
+        self.count += 1
+        if self.count % 20 == 0:
+            self.mu *= 2
+
 
 
 class SGD(Optimizer):
@@ -41,8 +46,7 @@ class BCD(Optimizer):
         if x is None:
             x = last_layer.a
         layer_output = layer.forward(x, update_a=False)
-
-        db = (-2 * layer.a + 2 * layer_output) * layer.activation.derivative(layer_output)
+        db = np.einsum('ijk,ijj->ijk', (-2 * layer.a + 2 * layer_output), layer.activation.derivative(layer_output))
         dw = np.einsum('ijk,ilk->jl', db, x, optimize=False)
         layer.P['w'] -= self.lr * dw / db.shape[0]
         layer.P['b'] -= self.lr * db.mean(axis=0)
@@ -53,15 +57,19 @@ class BCD(Optimizer):
             x = last_layer.a
         layer_output = layer.forward(x, update_a=False)
 
-        da = np.einsum('ijk,jl->ilk', (-2 * next_layer.a + 2 * next_layer_output) * next_layer.activation.derivative(next_layer_output), next_layer.P['w'])
+        dh_dsigma = -2 * next_layer.a + 2 * next_layer_output  # (out, 1)
+        dsigma_dz = next_layer.activation.derivative(next_layer_output)  # (out, out) in S
+        dz_da = next_layer.P['w']  # (out, in)
+        da = np.matmul(dsigma_dz, dh_dsigma)
+        da = np.matmul(dz_da.T, da)
         da += 2 * layer.a - 2 * layer_output
 
         layer.a -= self.lr * da
 
     def step(self, x, y, first):
         super().step()
-        # self.loss, self.metric = self.model.forward(x, y, update_a=first)
-        self.loss, self.metric = self.model.forward(x, y, update_a=True)
+        self.loss, self.metric = self.model.forward(x, y, update_a=first)
+        # self.loss, self.metric = self.model.forward(x, y, update_a=True)
 
         layer_1 = self.model.layers[-1]
         layer_2 = self.model.layers[-2]

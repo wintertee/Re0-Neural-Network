@@ -39,7 +39,10 @@ class relu(Activation):
     def backward(cls, a):
         da_dz = a > 0
         da_dz = da_dz.astype(np.int32)
-        return da_dz
+        da_dz_M = np.zeros((a.shape[0], a.shape[1], a.shape[1]))
+        for i in range(a.shape[0]):
+            da_dz_M[i] = np.diag(da_dz[i].squeeze())
+        return da_dz_M
 
     @classmethod
     def d2(cls, a):
@@ -67,10 +70,13 @@ class softmax(Activation):
     def derivative(cls, a):
         batch_size = a.shape[0]
         num_features = a.shape[1]
-        x = np.zeros((batch_size, num_features))
+        d = np.zeros((batch_size, num_features, num_features))
         for i in range(num_features):
-            x[:, i] = (a[:, i] * (1 - a[:, i])).reshape(batch_size)
-        return x.reshape(*x.shape, 1)
+            for j in range(i, num_features):
+                d[:, i, j] = a[:, i, 0] * (1 - a[:, i, 0]) if i == j else - a[:, i, 0] * a[:, i, 0]
+        for i in range(batch_size):
+            d[i] += d[i].T - np.diag(d[i].diagonal())
+        return d
 
     @classmethod
     def d2(cls, a):
