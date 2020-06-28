@@ -57,6 +57,7 @@ class BCD(Optimizer):
         layer_output = layer.forward(x, update_a=False)
 
         da = np.einsum('ijk,jl->ilk', (-2 * next_layer.a + 2 * next_layer_output) * next_layer.activation.backward(next_layer_output),next_layer.P['w'])
+        # 这里是错的。没有求softmax导数
         da += 2 * layer.a - 2 * layer_output
 
         layer.a -= self.lr * da
