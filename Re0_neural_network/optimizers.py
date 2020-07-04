@@ -132,7 +132,7 @@ class BCD_V2(BCD):
             last_layer.a[i] = z_star
 
     def step(self, x, y, first):
-        self.mu = self.count // 500 + 1
+        self.mu = self.count // (5 * x.shape[0]) + 1  # every 5 epochs, mu add 1
         return super().step(x, y, first)
 
 
@@ -140,7 +140,7 @@ class BCD_V3(BCD):
     def _update_w_b(self, layer, last_layer=None, x=None):
         if x is None:
             x = last_layer.a
-        W = np.zeros(layer.P['w'].shape)  # update W row-wise
+        W = np.zeros(layer.P['w'].shape)
         for i in range(x.shape[0]):
             A = x[i]
             first_term = np.linalg.inv(A.dot(A.T) + np.eye(A.shape[0]) * 1e-3).dot(A)
