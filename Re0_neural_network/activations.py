@@ -39,14 +39,15 @@ class relu(Activation):
     def backward(cls, a):
         da_dz = a > 0
         da_dz = da_dz.astype(np.int32)
+        return da_dz
+
+    @classmethod
+    def derivative(cls, a):
+        da_dz = cls.backward(a)
         da_dz_M = np.zeros((a.shape[0], a.shape[1], a.shape[1]))
         for i in range(a.shape[0]):
             da_dz_M[i] = np.diag(da_dz[i].squeeze())
         return da_dz_M
-
-    @classmethod
-    def d2(cls, a):
-        return cls.backward(a)
 
 
 class softmax(Activation):
@@ -56,7 +57,7 @@ class softmax(Activation):
         softmax only
         """
         exp_z = np.exp(z)
-        return exp_z / np.sum(exp_z, axis=(1, 2))[:, np.newaxis][:, np.newaxis]
+        return exp_z / (np.sum(exp_z, axis=(1, 2))[:, np.newaxis][:, np.newaxis] + 1e-6)
 
     @classmethod
     def backward(cls, a):
@@ -64,7 +65,7 @@ class softmax(Activation):
         implemented in Loss/Crossentropy.py, here returns identity matrix.
         use derivative if need
         """
-        return np.broadcast_to(np.eye(a.shape[1]), (a.shape[0], a.shape[1], a.shape[1]))
+        return np.ones(a.shape)
 
     @classmethod
     def derivative(cls, a):
@@ -77,7 +78,3 @@ class softmax(Activation):
         for i in range(batch_size):
             d[i] += d[i].T - np.diag(d[i].diagonal())
         return d
-
-    @classmethod
-    def d2(cls, a):
-        return 1 - 2 * a

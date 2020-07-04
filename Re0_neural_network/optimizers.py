@@ -16,7 +16,6 @@ class Optimizer:
         self.model = model
         self.layer_numbers = len(P)  # real number is layer_numbers + 1 !
         self.count = 0
-        self.mu = 1
 
     def step(self):
         """
@@ -24,9 +23,6 @@ class Optimizer:
         need to update P and return (loss, metric) in child classes
         """
         self.count += 1
-        if self.count % 20 == 0:
-            self.mu *= 2
-
 
 
 class SGD(Optimizer):
@@ -41,7 +37,6 @@ class SGD(Optimizer):
 
 
 class BCD(Optimizer):
-
     def _update_w_b(self, layer, last_layer=None, x=None):
         if x is None:
             x = last_layer.a
@@ -66,20 +61,18 @@ class BCD(Optimizer):
 
         layer.a -= self.lr * da
 
+    def _update_last_a(self, last_layer, llast_layer, y):
+        last_layer.a = y
+
     def step(self, x, y, first):
         super().step()
-        self.loss, self.metric = self.model.forward(x, y, update_a=first)
-        # self.loss, self.metric = self.model.forward(x, y, update_a=True)
 
-        # 这里如果是true收敛，是first不收敛。问题是update a的函数思路有问题
+        self.loss, self.metric = self.model.forward(x, y, update_a=True)
 
         layer_1 = self.model.layers[-1]
         layer_2 = self.model.layers[-2]
 
-        # da = self.model.loss.derivative(self.model.pred, y)
-        # da = 2 * layer_1.a - 2 * y
-        # layer_1.a -= self.lr * da
-        layer_1.a = y
+        self._update_last_a(layer_1, layer_2, y)
         self._update_w_b(layer_1, layer_2)
 
         for layer_i in range(self.layer_numbers - 2, -1, -1):
@@ -98,116 +91,62 @@ class BCD(Optimizer):
         return (self.loss, self.metric)
 
 
-class PRBCD(Optimizer):
-    """
-    "pseudo" randomized block coordinate descent
-    """
-    def step(self, x, y):
-        super().step(x, y)
-        layer = np.random.randint(self.layer_numbers)
-        key = 'w' if np.random.randint(1) == 0 else 'b'
-        self.P[layer][key] -= self.lr * self.G[layer][key]
-
-        return (self.loss, self.metric)
-
-
-class RCD(Optimizer):
-    def __init__(self, P, G, lr, model, n=1):
-        """
-        parameters:
-            n:  number of parameters to update at each iteration
-        """
+class BCD_V2(BCD):
+    def __init__(self, P, G, lr, model):
         super().__init__(P, G, lr, model)
-        self.n = n
+        self.mu = 1
 
-        # create all combinations of ['w', layer, i, j]
-        layers = np.arange(self.layer_numbers).astype(int)
-        for layer in layers:
-            i = np.arange(self.P[layer]['w'].shape[0]).astype(int)
-            j = np.arange(self.P[layer]['w'].shape[1]).astype(int)
-            i, j = np.meshgrid(i, j)
-            i = i.reshape(i.size, 1)
-            j = j.reshape(j.size, 1)
-            layer_index_list = np.ones(i.size).reshape(i.size, 1).astype(int) * layer
-            layer_index_list = np.hstack((layer_index_list, i, j))
-            if layer == 0:
-                layer_list = layer_index_list
-            else:
-                layer_list = np.vstack((layer_list, layer_index_list))
+    def _nu_upper_bound(self, x, y):
+        return 1 - (x + y / (2 * self.mu)).max(axis=1)
 
-        layer_list = layer_list.astype(int)
+    def _nu_lower_bound(self, p, x, y, theta):
+        return (1 - x.sum(axis=1) - y.sum(axis=1) / (2 * self.mu) * np.exp(theta)) / p
 
-        w = np.zeros(layer_list.shape[0]).reshape(layer_list.shape[0], 1).astype(int)  # 0 for 'w'
+    def _cal_z_star(self, x, y, nu):
+        temp = (x + nu) / 2
+        return temp + np.sqrt(temp**2 + y / (2 * self.mu))
 
-        w = np.hstack((w, layer_list))
+    def _update_last_a(self, last_layer, llast_layer, y):
 
-        # create all combinations of ['b', layer, i, j]
+        xx = last_layer.forward(llast_layer.a, update_a=False)
+        p = self.loss + self.mu * np.linalg.norm(xx - last_layer.a, axis=1)**2
+        theta = self.mu * np.linalg.norm(y - last_layer.a, axis=1)**2
 
-        layers = np.arange(self.layer_numbers).astype(int)
-        layer_list = []
-        for layer in layers:
-            i = np.arange(self.P[layer]['b'].shape[0]).astype(int)
-            j = np.arange(self.P[layer]['b'].shape[1]).astype(int)
-            i, j = np.meshgrid(i, j)
-            i = i.reshape(i.size, 1)
-            j = j.reshape(j.size, 1)
-            layer_index_list = np.ones(i.size).reshape(i.size, 1).astype(int) * layer
-            layer_index_list = np.hstack((layer_index_list, i, j))
-            if layer == 0:
-                layer_list = layer_index_list
-            else:
-                layer_list = np.vstack((layer_list, layer_index_list))
+        nu_max = self._nu_upper_bound(xx, y)
+        nu_min = self._nu_lower_bound(p, xx, y, theta)
 
-        layer_list = layer_list.astype(int)
+        for i in range(xx.shape[0]):  # batch size dim
 
-        b = np.ones(layer_list.shape[0]).reshape(layer_list.shape[0], 1).astype(int)  # 1 for 'b'
+            while nu_max[i] - nu_min[i] > 1e-2:
+                nu = (nu_max[i] + nu_min[i]) / 2
+                z_star = self._cal_z_star(xx[i], y[i], nu)
+                if z_star.sum() > 1:
+                    nu_max[i] = nu
+                else:
+                    nu_min[i] = nu
 
-        b = np.hstack((b, layer_list))
+            nu = (nu_max[i] + nu_min[i]) / 2
 
-        # all combinations of ['b', layer, i, j] and ['w', layer, i, j]
-        self.all_list = np.vstack((w, b)).astype(int)
+            z_star = self._cal_z_star(xx[i], y[i], nu)
 
-    def step(self, x, y):
+            last_layer.a[i] = z_star
 
-        np.random.shuffle(self.all_list)
-
-        for k in range(0, self.all_list.shape[0] + 1, self.n):
-            min_layer = min(self.all_list[k + kk][1] for kk in range(self.n) if k + kk < self.all_list.shape[0])
-            # only backward to the last layer whose parameters need to be updated
-            super().step(x, y, min_index=min_layer)
-            for kk in range(self.n):
-                index = k + kk
-                if index == self.all_list.shape[0]:
-                    break
-                if self.all_list[index][0] == 0:
-                    self.P[self.all_list[index][1]]['w'][self.all_list[index][2]][self.all_list[index][3]] -= self.lr *\
-                    self.G[self.all_list[index][1]]['w'][self.all_list[index][2]][self.all_list[index][3]]  # noqa: E122
-                if self.all_list[index][0] == 1:
-                    self.P[self.all_list[index][1]]['b'][self.all_list[index][2]][self.all_list[index][3]] -= self.lr *\
-                    self.G[self.all_list[index][1]]['b'][self.all_list[index][2]][self.all_list[index][3]]  # noqa: E122
-
-        return (self.loss, self.metric)
+    def step(self, x, y, first):
+        self.mu = self.count // 500 + 1
+        return super().step(x, y, first)
 
 
-class PBCSCD(Optimizer):
-    """
-    "pseudo" Block-Cyclic Stochastic Coordinate
-    """
-    def step(self, x, y):
-        k = self.model.batch_size // (self.layer_numbers + 1)  # number samples used to calculate gradient
-        L_layer = [x for x in range(self.layer_numbers)]  # liste of number of layers
+class BCD_V3(BCD):
+    def _update_w_b(self, layer, last_layer=None, x=None):
+        if x is None:
+            x = last_layer.a
+        W = np.zeros(layer.P['w'].shape)  # update W row-wise
+        for i in range(x.shape[0]):
+            A = x[i]
+            first_term = np.linalg.inv(A.dot(A.T) + np.eye(A.shape[0]) * 1e-3).dot(A)
+            for j in range(W.shape[0]):
+                w_j = first_term * (layer.a[i][j] - layer.P['b'][j])
+                W[j] += w_j.flatten()
+        layer.P['w'] = W / x.shape[0]
 
-        for i in range(self.layer_numbers):
-            layer_i = L_layer[np.random.randint(len(L_layer))]  # randomly choose a layer
-            x_i = x[i * k:(i + 1) * k]  # samples used to calculate gradient
-            y_i = y[i * k:(i + 1) * k]
-
-            super().step(x_i, y_i)
-
-            self.P[layer_i]['w'] -= self.lr * self.G[layer_i]['w']  # update parameters of the randomly chosen layer
-            self.P[layer_i]['b'] -= self.lr * self.G[layer_i]['b']
-
-            L_layer.remove(
-                layer_i
-            )  # the layer whos parameters that have been updated will be removed from the list so that all parameters will be updated in one epoch
-        return (self.loss, self.metric)
+        layer.P['b'] = (layer.a - np.einsum('ij,kjl->kil', layer.P['w'], x)).mean(axis=0)

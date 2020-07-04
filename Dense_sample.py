@@ -29,18 +29,17 @@ test_labels = np.eye(10)[targets].reshape(10000, 10, 1)
 
 # model
 model = models.Sequential()
-# model.append(layers.Flatten())
 model.append(layers.Dense(784, 16, activations.relu, initializers.He))
 model.append(layers.Dense(16, 10, activations.softmax, initializers.He))
 model.build()
 
 # model.config(optimizer=optimizers.SGD, loss=losses.Crossentropy, lr=0.01, metric=metrics.categorical_accuracy)
-# model.config(optimizer=optimizers.PRBCD, loss=losses.Crossentropy, lr=0.001)
-# model.config(optimizer=optimizers.RCD, loss=losses.Crossentropy, lr=0.001, n=10000)
 model.config(optimizer=optimizers.BCD, loss=losses.Crossentropy, lr=0.1, metric=metrics.categorical_accuracy)
+# model.config(optimizer=optimizers.BCD_V2, loss=losses.Crossentropy, lr=0.1, metric=metrics.categorical_accuracy)
+# model.config(optimizer=optimizers.BCD_V3, loss=losses.Crossentropy, lr=0.1, metric=metrics.categorical_accuracy)
 
-epoch = 100
-batch_size = 60000
+epoch = 10
+batch_size = 60
 
 train_losses, train_metrics, val_losses, val_metrics = model.fit(train_images, train_labels, test_images, test_labels, epoch, batch_size, verbose=1, freq=1)
 
