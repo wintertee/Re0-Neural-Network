@@ -10,7 +10,7 @@ train_labels = mnist['train_labels']
 test_images = mnist['test_images']
 test_labels = mnist['test_labels']
 
-# add 1 dim to the last axis of the image
+# add 1 dim to the last axis of the image, and flatten the image
 train_images = train_images.reshape(*(train_images.shape), 1).astype(float)
 train_images = train_images.reshape(60000, 784, 1).astype(float)
 test_images = test_images.reshape(*(test_images.shape), 1).astype(float)
@@ -36,7 +36,6 @@ model.build()
 # model.config(optimizer=optimizers.SGD, loss=losses.Crossentropy, lr=0.01, metric=metrics.categorical_accuracy)
 model.config(optimizer=optimizers.BCD, loss=losses.Crossentropy, lr=0.1, metric=metrics.categorical_accuracy)
 # model.config(optimizer=optimizers.BCD_V2, loss=losses.Crossentropy, lr=0.1, metric=metrics.categorical_accuracy)
-# model.config(optimizer=optimizers.BCD_V3, loss=losses.Crossentropy, lr=0.1, metric=metrics.categorical_accuracy)
 
 epoch = 10
 batch_size = 60

@@ -71,7 +71,6 @@ class BCD(Optimizer):
 
         layer_1 = self.model.layers[-1]
         layer_2 = self.model.layers[-2]
-
         self._update_last_a(layer_1, layer_2, y)
         self._update_w_b(layer_1, layer_2)
 
@@ -117,7 +116,7 @@ class BCD_V2(BCD):
 
         for i in range(xx.shape[0]):  # batch size dim
 
-            while nu_max[i] - nu_min[i] > 1e-2:
+            while nu_max[i] - nu_min[i] > 1e-2:  # Bisection method
                 nu = (nu_max[i] + nu_min[i]) / 2
                 z_star = self._cal_z_star(xx[i], y[i], nu)
                 if z_star.sum() > 1:
@@ -134,19 +133,3 @@ class BCD_V2(BCD):
     def step(self, x, y, first):
         self.mu = self.count // (5 * x.shape[0]) + 1  # every 5 epochs, mu add 1
         return super().step(x, y, first)
-
-
-class BCD_V3(BCD):
-    def _update_w_b(self, layer, last_layer=None, x=None):
-        if x is None:
-            x = last_layer.a
-        W = np.zeros(layer.P['w'].shape)
-        for i in range(x.shape[0]):
-            A = x[i]
-            first_term = np.linalg.inv(A.dot(A.T) + np.eye(A.shape[0]) * 1e-3).dot(A)
-            for j in range(W.shape[0]):
-                w_j = first_term * (layer.a[i][j] - layer.P['b'][j])
-                W[j] += w_j.flatten()
-        layer.P['w'] = W / x.shape[0]
-
-        layer.P['b'] = (layer.a - np.einsum('ij,kjl->kil', layer.P['w'], x)).mean(axis=0)

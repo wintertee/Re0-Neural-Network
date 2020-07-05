@@ -21,12 +21,19 @@ class Activation:
         parameters:
             a:  output of the activation function
         return:
-            derivative of the activation function
+            element-wise derivative of the activation function
         """
         raise NotImplementedError
 
     @classmethod
     def derivative(cls, a):
+        """
+        this method is for BCD optimizers
+        parameters:
+            a:  output of the activation function
+        return:
+            Jacobian matrix of the activation function
+        """
         return cls.backward(a)
 
 

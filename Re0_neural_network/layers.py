@@ -11,6 +11,9 @@ class Layer:
         raise NotImplementedError
 
     def backward(self):
+        """
+        calculate and store the gradient, also return the gradient of the input. Designed for SGD optimizer.
+        """
         raise NotImplementedError
 
 

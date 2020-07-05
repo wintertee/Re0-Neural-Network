@@ -89,7 +89,6 @@ class Sequential:
             x = x_train[i * batch_size:(i + 1) * batch_size]
             y = y_train[i * batch_size:(i + 1) * batch_size]
             train_loss, train_metric = self.train(x, y, first=(i == 0 and epoch == 0))
-            # train_loss, train_metric = self.train(x, y, first=True)
 
             train_losses[i] = train_loss
             train_metrics[i] = train_metric
