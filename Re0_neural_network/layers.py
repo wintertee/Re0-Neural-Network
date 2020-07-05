@@ -122,7 +122,7 @@ class Conv2d(Layer):
 
         return image_col
 
-    def forward(self, x):
+    def forward(self, x, **kwargs):
         col_weights = self.P['w'].reshape([-1, self.output_channels])
         self.col_image = []
         self.a = np.zeros(self.eta.shape)
@@ -191,7 +191,7 @@ class MaxPool2d(Layer):
         self.G['b'] = np.array([])
         self.delta_matrix = []
 
-    def forward(self, input_image):
+    def forward(self, input_image, **kwargs):
         self.input_image = input_image
         for k in range(self.batchsize):
             for d in range(self.channel_number):
