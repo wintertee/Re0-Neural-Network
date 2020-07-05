@@ -38,9 +38,3 @@ Our coding structure design is like this:
    +-----------+  +------------+
 
 ```
-
-## Implementation details
-
-### activation class
-
-
