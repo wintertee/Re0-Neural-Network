@@ -2,6 +2,8 @@
 
 A neural network designed from scratch, using only `numpy` and `matplotlib` library.
 
+The code is availble at [GitHub](https://github.com/wintertee/Re0-Neural-Network)
+
 ## Usage
 
 Our code demos are `Dense_sample.py` and `Conv_sample.py`.
